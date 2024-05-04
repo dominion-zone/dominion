@@ -2,7 +2,7 @@
 name = "dominion"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 version = "0.1.0"
-published-at = "0xf216ad759917f0beb80ff7d974f1ec508066d4995af3c447fca157d84088af5d"
+published-at = "0x419a458d7d7acc96055d4c6de424ad634de5bfbd42e644d0c4d6a6af17fc3062"
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 
@@ -21,7 +21,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 # Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-dominion = "0x0"
+dominion = "0x419a458d7d7acc96055d4c6de424ad634de5bfbd42e644d0c4d6a6af17fc3062"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.

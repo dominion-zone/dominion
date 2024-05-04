@@ -1,60 +1,77 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import AppHeader from "../components/AppHeader";
-import { Suspense, useCallback } from "react";
+import { ReactNode, Suspense, useCallback, useEffect } from "react";
 import { z } from "zod";
 import {
-  createNetworkConfig,
   SuiClientProvider,
   WalletProvider,
+  useCurrentAccount,
 } from "@mysten/dapp-kit";
-import { getFullnodeUrl } from "@mysten/sui.js/client";
-
-const { networkConfig } = createNetworkConfig({
-  devnet: { url: getFullnodeUrl("devnet") },
-  testnet: { url: getFullnodeUrl("testnet") },
-  mainnet: { url: getFullnodeUrl("mainnet") },
-});
-
-export type Network = keyof typeof networkConfig;
+import { networkConfig, Network } from "../config/network";
+import { configQO } from "../queryOptions/config";
 
 export const Route = createFileRoute("/app")({
-  component: App,
+  component: AppLayout,
   validateSearch: z.object({
     network: z.enum(["devnet", "testnet", "mainnet"]).catch("devnet"),
+    wallet: z.string().optional(),
   }),
   preSearchFilters: [
     (search) => ({
       ...search,
     }),
   ],
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(configQO()),
 });
 
-function App() {
-  const { network } = Route.useSearch();
+function WalletHandler({ children }: { children: ReactNode }) {
+  const currentAccount = useCurrentAccount();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  useEffect(() => {
+    if (currentAccount && currentAccount.address !== search.wallet) {
+      navigate({
+        search: {
+          ...search,
+          wallet: currentAccount.address,
+        },
+      });
+    }
+  }, [currentAccount, navigate, search]);
+  return <>{children}</>;
+}
+
+function AppLayout() {
+  const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
   const onNetworkChange = useCallback(
     (network: Network) => {
       navigate({
         search: {
+          ...search,
           network,
         },
       });
     },
-    [navigate]
+    [navigate, search]
   );
 
   return (
     <SuiClientProvider
       networks={networkConfig}
-      network={network}
+      network={search.network}
       onNetworkChange={onNetworkChange}
     >
       <WalletProvider>
-        <AppHeader />
-        <Suspense>
-          <Outlet />
-        </Suspense>
+        <WalletHandler>
+          <Suspense>
+            <AppHeader />
+            <Outlet />
+          </Suspense>
+        </WalletHandler>
       </WalletProvider>
     </SuiClientProvider>
   );

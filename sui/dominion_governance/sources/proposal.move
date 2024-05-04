@@ -52,7 +52,7 @@ module dominion_governance::proposal {
     }
 
     public(package) fun new<T>(
-        governance: &mut Governance<T>,
+        governance: &Governance<T>,
         name: String,
         link: Url,
         clock: &Clock,
@@ -202,6 +202,10 @@ module dominion_governance::proposal {
 
     public fun proposal_id(self: &ProposalOwnerCap): ID {
         self.proposal_id
+    }
+
+    public fun locked_weight(self: &ProposalOwnerCap): u64 {
+        self.locked_weight
     }
 
     // public fun voting_result

@@ -1,15 +1,17 @@
-module dominion_governance::vote {
+module dominion_governance::member {
     use std::string::String;
     use sui::url::Url;
-    use sui::vec_map::{Self, VecMap};
     use sui::balance::{Self, Balance};
+    use sui::coin::{Self, Coin};
     use sui::clock::Clock;
+    use sui::math;
     use dominion_governance::governance::{Self, Governance};
     use dominion_governance::proposal::{Self, Proposal, ProposalOwnerCap};
 
     const EInvalidGovernance: u64 = 0;
     const ENotEnoughVotingWeight: u64 = 1;
     const EProposalOwnerCapNotFound: u64 = 2;
+    const ENotEnoughFunds: u64 = 3;
 
     public struct Vote has store {
         proposal_id: ID,
@@ -24,7 +26,6 @@ module dominion_governance::vote {
         balance: Balance<T>,
         votes: vector<Vote>,
         proposal_owner_caps: vector<ProposalOwnerCap>,
-        locked_weight: u64,
     }
 
     public fun new<T>(
@@ -37,7 +38,6 @@ module dominion_governance::vote {
             balance: balance::zero(),
             votes: vector::empty(),
             proposal_owner_caps: vector::empty(),
-            locked_weight: 0,
         }
     }
 
@@ -50,6 +50,46 @@ module dominion_governance::vote {
             ctx,
         );
         transfer::transfer(self, ctx.sender());
+    }
+
+    public fun deposit_balance<T>(
+        self: &mut Member<T>,
+        balance: Balance<T>,
+    ) {
+        self.balance.join(balance);
+    }
+
+    public entry fun deposit<T>(
+        self: &mut Member<T>,
+        coin: Coin<T>,
+    ) {
+        coin::put(&mut self.balance, coin);
+    }
+
+    public fun withdraw_balance<T>(
+        self: &mut Member<T>,
+        amount: u64,
+    ): Balance<T> {
+        assert!(
+            self.voting_weight() >= self.locked_weight() + amount,
+            ENotEnoughFunds,
+        );
+
+        self.balance.split(amount)
+    }
+
+    entry fun withdraw<T>(
+        self: &mut Member<T>,
+        amount: u64,
+        ctx: &mut TxContext
+    ) {
+        assert!(
+            self.voting_weight() >= self.locked_weight() + amount,
+            ENotEnoughFunds,
+        );
+
+        let coin = coin::take(&mut self.balance, amount, ctx);
+        transfer::public_transfer(coin, ctx.sender());
     }
 
     public fun new_proposal<T>(
@@ -72,11 +112,8 @@ module dominion_governance::vote {
             clock,
             ctx
         );
-        if (self.locked_weight < governance.min_weight_to_create_proposal()) {
-            self.locked_weight = governance.min_weight_to_create_proposal();
-        };
 
-        governance.register_proposal(object::id(&proposal));
+        // governance.register_proposal(object::id(&proposal));
         self.proposal_owner_caps.push_back(owner_cap);
 
         proposal
@@ -91,7 +128,7 @@ module dominion_governance::vote {
         while (i < n) {
             let owner_cap = &self.proposal_owner_caps[i];
             if (owner_cap.proposal_id() == proposal_id) {
-                return owner_cap;
+                return owner_cap
             };
             i = i + 1;
         };
@@ -110,73 +147,55 @@ module dominion_governance::vote {
         proposal: &mut Proposal<T>,
         option_index: Option<u64>,
         is_abstain: bool,
-        weight: Option<u64>,
+        reliquish: bool,
     ) {
         assert!(
             proposal.governance_id() == self.governance_id,
             EInvalidGovernance
         );
 
-        let weight = if (weight.is_some()) {
-            let weight = weight.destroy_some();
-            assert!(weight <= self.voting_weight(), ENotEnoughVotingWeight);
-            weight
-        } else {
-            self.voting_weight()
-        };
-
-        if (self.locked_weight < weight) {
-            self.locked_weight = weight;
-        };
+        let weight = if (reliquish) { 0 } else { self.voting_weight() };
 
         let proposal_id = object::id(proposal);
         let mut i = 0;
         let n = self.votes.length();
         while (i < n) {
             if (&self.votes[i].proposal_id == proposal_id) {
-                break;
+                break
             };
             i = i + 1;
         };
         if (i < n) {
-            let vote = &mut self.votes[i];
+            let Vote {
+                proposal_id: _,
+                option_index,
+                is_abstain,
+                weight,
+            } = self.votes.remove(i);
+
             proposal.reliquish_vote(
-                vote.option_index,
-                vote.is_abstain,
-                vote.weight
+                option_index,
+                is_abstain,
+                weight
             );
-            vote.option_index = option_index;
-            vote.weight = weight;
-            vote.is_abstain = is_abstain;
-
-            if (weight == 0) {
-                let Vote {
-                    proposal_id: _,
-                    option_index: _,
-                    is_abstain: _,
-                    weight: _
-                } = self.votes.swap_remove(i);
-            }
-        } else {
-            if (weight > 0) {
-                self.votes.push_back(
-                    Vote {
-                        proposal_id,
-                        option_index,
-                        is_abstain,
-                        weight
-                    }
-                );
-            }
         };
-
+        
         if (weight > 0) {
+            self.votes.push_back(
+                Vote {
+                    proposal_id,
+                    option_index,
+                    is_abstain,
+                    weight
+                }
+            );
+
             proposal.cast_vote(
                 option_index,
                 is_abstain,
                 weight,
             );
-        }
+        };
     }
 
     public fun voting_weight<T>(self: &Member<T>): u64 {
@@ -184,6 +203,20 @@ module dominion_governance::vote {
     }
 
     public fun locked_weight<T>(self: &Member<T>): u64 {
-        self.locked_weight
+        let mut locked_weight = 0u64;
+        let voteCount = self.votes.length();
+        if (voteCount > 0) {
+            locked_weight = self.votes[voteCount - 1].weight;
+        };
+
+        let proposal_count = self.proposal_owner_caps.length();
+        if (proposal_count > 0) {
+            locked_weight = math::max(
+                locked_weight,
+                self.proposal_owner_caps[proposal_count - 1].locked_weight()
+            );
+        };
+
+        locked_weight
     }
 }

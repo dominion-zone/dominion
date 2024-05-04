@@ -2,7 +2,7 @@ module dominion::dominion_admin_commander {
     use dominion::commander_cap::{Self, CommanderCap};
     use dominion::command::Command;
     use dominion::executor::Executor;
-    use dominion::dominion::{Self, Dominion, DominionAdminCap, DominionOwnerCap};
+    use dominion::dominion::{Self, Dominion, DominionAdminCap};
     use sui::dynamic_field;
     use std::string;
     use sui::transfer::Receiving;
@@ -12,9 +12,10 @@ module dominion::dominion_admin_commander {
     const KDisableCommander: u8 = 2;
     const KResetOwnerCap: u8 = 3;
 
-    const TCommanderCapId: u8 = 16;
-    const TOwnerCapRecepient: u8 = 17;
-    const TAdminCapRecepient: u8 = 18;
+
+    const TAdminCapRecepient: u8 = 32;
+    const TCommanderCapId: u8 = 33;
+    const TOwnerCapRecepient: u8 = 34;
 
     const EInvalidCommandKind: u64 = 0;
     const EInvalidTargetDominion: u64 = 2;
@@ -22,7 +23,7 @@ module dominion::dominion_admin_commander {
 
     public struct DOMINION_ADMIN_COMMANDER has drop()
 
-    public struct AdminControl has key {
+    public struct DominionAdminControl has key {
         id: UID,
         commander_cap: CommanderCap<DOMINION_ADMIN_COMMANDER>,
     }
@@ -39,7 +40,7 @@ module dominion::dominion_admin_commander {
         ctx: &mut TxContext,
     ) {
         let commander_cap = commander_cap::new(w, ctx);
-        transfer::freeze_object(AdminControl {
+        transfer::freeze_object(DominionAdminControl {
             id: object::new(ctx),
             commander_cap
         });
@@ -47,8 +48,8 @@ module dominion::dominion_admin_commander {
 
     public entry fun enable(
         dominion: &mut Dominion,
-        admin_control: &AdminControl,
         admin_cap: &DominionAdminCap,
+        admin_control: &DominionAdminControl,
     ) {
         dominion.enable_commander(
             object::id(&admin_control.commander_cap),
@@ -58,8 +59,8 @@ module dominion::dominion_admin_commander {
 
     public entry fun disable(
         dominion: &mut Dominion,
-        admin_control: &AdminControl,
         admin_cap: &DominionAdminCap,
+        admin_control: &DominionAdminControl,
     ) {
         dominion.disable_commander(
             object::id(&admin_control.commander_cap),
@@ -71,7 +72,7 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         admin_cap_recipient: address,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -95,7 +96,7 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         commander_cap_id: ID,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -119,7 +120,7 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         commander_cap_id: ID,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         assert!(
@@ -147,7 +148,7 @@ module dominion::dominion_admin_commander {
     public fun new_disable_self_command(
         dominion: &Dominion,
         admin_cap_recepient: address,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -176,7 +177,7 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         recepient: address,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -215,7 +216,7 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -249,7 +250,7 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -294,7 +295,7 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -340,7 +341,7 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -385,7 +386,7 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -439,7 +440,7 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &AdminControl,
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
@@ -478,28 +479,17 @@ module dominion::dominion_admin_commander {
         )
     }
 
-    public fun new_self_controlled_dominion(
-        admin_control: &AdminControl,
+    entry fun create_self_controlled_dominion(
+        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
-    ): (Dominion, DominionOwnerCap) {
+    ) {
         let (mut dominion, admin_cap, owner_cap) = dominion::new(
             ctx,
         );
-        enable(&mut dominion, admin_control, &admin_cap);
+        enable(&mut dominion, &admin_cap, admin_control);
         transfer::public_transfer(
             admin_cap,
             object::id_address(&dominion),
-        );
-        (dominion, owner_cap)
-    }
-
-    entry fun create_self_controlled_dominion(
-        admin_control: &AdminControl,
-        ctx: &mut TxContext,
-    ) {
-        let (dominion, owner_cap) = new_self_controlled_dominion(
-            admin_control,
-            ctx
         );
 
         transfer::public_transfer(
@@ -520,12 +510,12 @@ module dominion::dominion_admin_commander {
     #[test_only]
     public fun self_controlled_dominion_for_testing(
         scenario: &mut Scenario
-    ): (Dominion, DominionOwnerCap, AdminControl) {
+    ): (Dominion, DominionOwnerCap, DominionAdminControl) {
         let nobody = @0x0;
         init_for_testing(scenario.ctx());
 
         scenario.next_tx(nobody);
-        let admin_control = scenario.take_immutable<AdminControl>();
+        let admin_control = scenario.take_immutable<DominionAdminControl>();
 
         let (dominion, owner_cap) = new_self_controlled_dominion(
             &admin_control,
@@ -547,7 +537,7 @@ module dominion::dominion_admin_commander {
 
         let effects = scenario.next_tx(nobody);
         assert!(effects.frozen().length() == 1, 0);
-        let admin_control = scenario.take_immutable<AdminControl>();
+        let admin_control = scenario.take_immutable<DominionAdminControl>();
         
         test_scenario::return_immutable(admin_control);
         scenario.end();
@@ -560,7 +550,7 @@ module dominion::dominion_admin_commander {
         init_for_testing(scenario.ctx());
 
         scenario.next_tx(nobody);
-        let admin_control = scenario.take_immutable<AdminControl>();
+        let admin_control = scenario.take_immutable<DominionAdminControl>();
 
         let (dominion, owner_cap) = new_self_controlled_dominion(
             &admin_control,

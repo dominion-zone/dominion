@@ -1,5 +1,5 @@
 module dominion_governance::governance {
-    use dominion::dominion::{Self, DominionOwnerCap as DominionOwnerCap};
+    use dominion::dominion::{Self, DominionOwnerCap};
     use std::string::String;
     use sui::url::Url;
     use sui::bag::{Self, Bag};
@@ -31,7 +31,6 @@ module dominion_governance::governance {
         cool_off_time: u64,
         hold_up_time: u64,
         extra_weight_lock_time: u64,
-        active_proposal_ids: vector<ID>,
     }
 
     public fun new<T>(
@@ -60,7 +59,6 @@ module dominion_governance::governance {
             cool_off_time: 0,
             hold_up_time: 0,
             extra_weight_lock_time: 0,
-            active_proposal_ids: vector::empty(),
         };
 
         let governance_id = object::id(&self);
@@ -83,6 +81,7 @@ module dominion_governance::governance {
         transfer::share_object(self);
     }
 
+    /*
     public(package) fun register_proposal<T>(
         self: &mut Governance<T>,
         proposal_id: ID
@@ -98,6 +97,7 @@ module dominion_governance::governance {
         assert!(found, EProposalNotFound);
         self.active_proposal_ids.swap_remove(i);
     }
+    */
 
     public fun admin_cap_id<T>(self: &Governance<T>): ID {
         self.admin_cap_id
@@ -210,5 +210,12 @@ module dominion_governance::governance {
         assert!(object::id(admin_cap) == self.admin_cap_id, EInvalidAdminCap);
         self.extra_weight_lock_time = new_value;
     }
+
+    public fun admin_cap_governance_id(
+        self: &GovernanceAdminCap
+    ): ID {
+        self.governance_id
+    }
+    public use fun admin_cap_governance_id as GovernanceAdminCap.governance_id;
 }
 

@@ -41,8 +41,10 @@
   },
   "dependencies": {
     "@dominion.zone/dominion-sdk": "workspace:^",
-    "@mysten/sui.js": "^0.51.2",
+    "@mysten/sui.js": "^0.52.0",
+    "axios": "^1.6.8",
     "commander": "^12.0.0",
+    "dotenv": "^16.4.5",
     "expand-tilde": "^2.0.2",
     "mz": "^2.7.0",
     "yaml": "^2.4.1"

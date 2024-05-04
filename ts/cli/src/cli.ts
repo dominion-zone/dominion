@@ -2,13 +2,17 @@ import {Command} from 'commander';
 import {installDeployCLI} from './deploy';
 import {readFile} from 'mz/fs';
 import expandTilde from 'expand-tilde';
-import {setContext} from './context';
+import {AppConfig, setContext} from './context';
 import {DominionSDK} from '@dominion.zone/dominion-sdk';
-import {getFullnodeUrl, SuiClient} from '@mysten/sui.js/client';
+import {SuiClient} from '@mysten/sui.js/client';
 import * as YAML from 'yaml';
 import {fromB64} from '@mysten/sui.js/utils';
 import {Ed25519Keypair} from '@mysten/sui.js/keypairs/ed25519';
-import { installCreateSelfControlledDominion } from './createSelfControlledDominion';
+import {installCreateDominion} from './createDominion';
+import {installCreateGovernance} from './createGovernance';
+import axios from 'axios';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 export const cli = () => {
   const program = new Command();
@@ -16,15 +20,21 @@ export const cli = () => {
   program
     .version('0.0.1')
     .allowExcessArguments(false)
-    .hook('preAction', async (command: Command) => {
-      const cliConfig = JSON.parse(
-        await readFile(expandTilde('./config.json'), 'utf8')
-      );
+    .hook('preAction', async () => {
+      const couchdb = axios.create({
+        baseURL: process.env.VITE_COUCHDB_URL as string,
+        timeout: 1000,
+      });
+      const appConfig = (
+        await couchdb.get(process.env.VITE_CONFIG_PATH as string)
+      ).data as AppConfig;
+
       const suiConfig = YAML.parse(
         await readFile(expandTilde('~/.sui/sui_config/client.yaml'), 'utf8')
       );
       const env: string = suiConfig.active_env;
       const walletAddress = suiConfig.active_address;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const suiEnvConfig = suiConfig.envs.find((e: any) => e.alias === env);
       const keystore: string[] = JSON.parse(
         await readFile(suiConfig.keystore.File, 'utf8')
@@ -43,17 +53,20 @@ export const cli = () => {
       }
 
       setContext({
+        couchdb,
+        appConfig,
+        env,
         wallet: wallet!,
-        dominionSDK: DominionSDK.create({
-          sui: new SuiClient({url: suiEnvConfig.rpc}),
-          contractAddress: cliConfig.dominion,
-          adminControlAddress: cliConfig.adminControl,
-        }),
+        dominionSDK: new DominionSDK(
+          new SuiClient({url: suiEnvConfig.rpc}),
+          appConfig[env]
+        ),
       });
     });
-  
+
   installDeployCLI(program);
-  installCreateSelfControlledDominion(program);
+  installCreateDominion(program);
+  installCreateGovernance(program);
 
   return program;
 };

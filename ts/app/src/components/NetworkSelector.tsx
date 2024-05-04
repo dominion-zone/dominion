@@ -6,10 +6,15 @@ import {
   SelectChangeEvent,
 } from "@mui/material";
 import { useSuiClientContext } from "@mysten/dapp-kit";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { configQO } from "../queryOptions/config";
 
 function NetworkSelector() {
+  const { data: config } = useSuspenseQuery(configQO());
   const { network, selectNetwork } = useSuiClientContext();
+
+  const networks = Object.keys(config);
 
   const handleSelectNetwork = useCallback(
     (event: SelectChangeEvent) => {
@@ -25,9 +30,11 @@ function NetworkSelector() {
         value={network}
         onChange={handleSelectNetwork}
       >
-        <MenuItem value="devnet">Devnet</MenuItem>
-        <MenuItem value="testnet">Testnet</MenuItem>
-        <MenuItem value="mainnet">Mainnet</MenuItem>
+        {networks.map((network) => (
+          <MenuItem key={network} value={network}>
+            {network.charAt(0).toUpperCase() + network.slice(1)}
+          </MenuItem>
+        ))}
       </Select>
     </FormControl>
   );

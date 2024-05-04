@@ -10,29 +10,33 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dominion.zone/dominion-sdk": "workspace:^",
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^5.15.15",
     "@mui/material": "^5.15.15",
     "@mysten/dapp-kit": "^0.12.10",
-    "@mysten/sui.js": "^0.51.2",
+    "@mysten/sui.js": "^0.52.0",
+    "@mysten/wallet-standard": "^0.11.3",
     "@tanstack/react-query": "^5.32.0",
-    "@tanstack/react-router": "^1.31.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@tanstack/react-query-devtools": "^5.32.0",
+    "@tanstack/react-router": "^1.31.1",
+    "axios": "^1.6.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "zod": "^3.23.4"
   },
   "devDependencies": {
-    "@tanstack/router-devtools": "^1.31.0",
+    "@tanstack/router-devtools": "^1.31.1",
     "@tanstack/router-vite-plugin": "^1.30.0",
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.6",
-    "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10"
   }
 }
