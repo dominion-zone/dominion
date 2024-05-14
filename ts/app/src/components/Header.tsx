@@ -12,7 +12,6 @@ function AppHeader() {
             <Button
               component={Link}
               to="/app"
-              search={{ network: 'devnet' }} // TODO: save network in local storage
               color="inherit"
             >
               Launch App

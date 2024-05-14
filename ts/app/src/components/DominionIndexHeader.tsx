@@ -1,13 +1,21 @@
-import { Tab, Tabs, Toolbar } from "@mui/material";
+import { Tab, Tabs, Toolbar, Typography } from "@mui/material";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { SyntheticEvent, useCallback } from "react";
+import UpButton from "./UpButton";
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
-function DominionIndexHeader({ tab }: { tab: "public" | "my" | "create" }) {
+export type DominionIndexHeaderTab = "public" | "my" | "create";
+
+export type DominionIndexHeaderProps = {
+  tab: DominionIndexHeaderTab;
+};
+
+function DominionIndexHeader({ tab }: DominionIndexHeaderProps) {
   const navigate = useNavigate();
   const { network, wallet } = useSearch({ from: "/app" });
 
   const handleChange = useCallback(
-    (_e: SyntheticEvent, newValue: "public" | "my" | "create") => {
+    (_e: SyntheticEvent, newValue: DominionIndexHeaderTab) => {
       switch (newValue) {
         case "public":
           navigate({ to: "/app", search: { network, wallet } });
@@ -25,15 +33,12 @@ function DominionIndexHeader({ tab }: { tab: "public" | "my" | "create" }) {
 
   return (
     <Toolbar>
-      <Tabs value={tab} onChange={handleChange} sx={{width: 'auto'}}>
+      <UpButton to="/" />
+      <Typography sx={{ ml: 1, mr: 2 }}>Dominions</Typography>
+      <Tabs value={tab} onChange={handleChange}>
         <Tab label="Public" value="public" />
         <Tab label="My" value="my" disabled={!wallet} />
-        <Tab
-          label="Create"
-          value="create"
-          disabled={!wallet}
-          sx={{ ml: "auto" }}
-        />
+        <Tab icon={<AddCircleOutlineIcon/>} value="create" disabled={!wallet} />
       </Tabs>
     </Toolbar>
   );

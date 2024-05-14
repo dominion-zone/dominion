@@ -4,60 +4,100 @@ import {
   DominionSDK,
   Governance,
   Member,
+  Registry,
 } from "@dominion.zone/dominion-sdk";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import {
-  useCurrentAccount,
-  useSignAndExecuteTransactionBlock,
-} from "@mysten/dapp-kit";
+import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
 import useDominionSdk from "../useDominionSdk";
 import useConfig from "../useConfig";
 import { Config } from "../../queryOptions/configQO";
+import { registryQO } from "../../queryOptions/registryQO";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
-function createTxb({
-  config,
-  dominionSdk,
-  wallet,
-  name,
-  coinType,
-  link,
-  minWeightToCreateProposal,
-  voteThreshold,
-  maxVotingTime,
-}: {
-  config: Config;
-  dominionSdk: DominionSDK;
-  wallet: string;
+export type CreateGovernanceParams = {
   name: string;
   coinType: string;
+  urlName: string;
   link: string;
   minWeightToCreateProposal: bigint;
   voteThreshold: bigint;
   maxVotingTime: bigint;
+};
+
+function createTxb({
+  config,
+  registry,
+  sdk,
+  wallet,
+  name,
+  coinType,
+  urlName,
+  link,
+  minWeightToCreateProposal,
+  voteThreshold,
+  maxVotingTime,
+}: CreateGovernanceParams & {
+  config: Config;
+  registry: Registry;
+  sdk: DominionSDK;
+  wallet: string;
 }) {
   const txb = new TransactionBlock();
-  const { dominion, governance, vetoCap } =
-    Governance.withNewSelfControlledDominionAndGovernance({
-      sdk: dominionSdk,
-      name,
-      coinType,
-      link,
-      minWeightToCreateProposal,
-      voteThreshold,
-      maxVotingTime,
-      txb,
-    });
 
-  const member = Member.withNew({
-    sdk: dominionSdk,
-    governance,
-    coinType,
+  const {
+    dominion,
+    adminCap: dominionAdminCap,
+    ownerCap,
+  } = Dominion.withNew({
+    sdk,
     txb,
   });
-  const testCoinType: string | undefined =
-    config.testCoin && `${config.testCoin.contract}::test_coin::TEST_COIN`;
-  if (coinType === testCoinType) {
-    // txb.
+
+  Dominion.withEnableAdminCommander({
+    sdk,
+    dominion,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+  Governance.withEnableAdminCommander({
+    sdk,
+    dominion,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+  registry.withPushBackEntry({
+    dominion,
+    urlName,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+
+  const { governance, governanceAdminCap, vetoCap } = Governance.withNew({
+    sdk,
+    dominion,
+    dominionOwnerCap: ownerCap,
+    name,
+    coinType,
+    link,
+    minWeightToCreateProposal: BigInt(minWeightToCreateProposal),
+    voteThreshold: BigInt(voteThreshold),
+    maxVotingTime: BigInt(maxVotingTime),
+    txb,
+  });
+
+  txb.transferObjects(
+    [txb.object(dominionAdminCap), txb.object(governanceAdminCap)],
+    txb.moveCall({
+      target: "0x2::object::id_address",
+      typeArguments: [`${sdk.config.dominion.contract}::dominion::Dominion`],
+      arguments: [txb.object(dominion)],
+    })
+  );
+
+  const member = Member.withNew({ sdk, governance, coinType, txb });
+
+  if (coinType === `${config.testCoin?.contract}::test_coin::TEST_COIN`) {
     const coin = txb.moveCall({
       target: `${config.testCoin!.contract}::test_coin::mint_coin`,
       arguments: [
@@ -66,10 +106,10 @@ function createTxb({
       ],
     });
 
-    Member.withDeposit({ sdk: dominionSdk, member, coinType, coin, txb });
+    Member.withDeposit({ sdk, member, coinType, coin, txb });
   }
-  Dominion.withCommit({ sdk: dominionSdk, dominion, txb });
-  Governance.withCommit({ sdk: dominionSdk, governance, coinType, txb });
+  Dominion.withCommit({ sdk, dominion, txb });
+  Governance.withCommit({ sdk, governance, coinType, txb });
   txb.transferObjects([txb.object(vetoCap), txb.object(member)], wallet);
   txb.setGasBudget(2000000000);
   txb.setSenderIfNotSet(wallet);
@@ -77,67 +117,55 @@ function createTxb({
   return txb;
 }
 
-export const useCreateGovernance = ({
+function useCreateGovernance({
   network,
-  name,
-  coinType,
-  link,
-  minWeightToCreateProposal,
-  voteThreshold,
-  maxVotingTime,
+  wallet,
 }: {
   network: Network;
-  name: string;
-  coinType: string;
-  link: string;
-  minWeightToCreateProposal: bigint;
-  voteThreshold: bigint;
-  maxVotingTime: bigint;
-}) => {
-  const wallet = useCurrentAccount()?.address;
+  wallet: string;
+}) {
   const mutation = useSignAndExecuteTransactionBlock({
-    mutationKey: [
-      network,
-      "createGovernance",
-      {
-        name,
-        coinType,
-        link,
-      },
-    ],
+    mutationKey: [network, "createGovernance"],
   });
-  const config = useConfig();
-  const dominionSdk = useDominionSdk();
+  const config = useConfig({ network });
+  const dominionSdk = useDominionSdk({ network });
+  const queryClient = useQueryClient();
+  const { data: registry } = useSuspenseQuery(
+    registryQO({ network, queryClient })
+  );
 
-  return {
-    ...mutation,
-    mutate(options?: Parameters<typeof mutation.mutate>[1]) {
-      const txb = createTxb({
-        config,
-        dominionSdk,
-        wallet: wallet!,
-        name,
-        coinType,
-        link,
-        minWeightToCreateProposal,
-        voteThreshold,
-        maxVotingTime,
-      });
-      return mutation.mutate({ transactionBlock: txb }, options);
-    },
-    mutateAsync(options?: Parameters<typeof mutation.mutateAsync>[1]) {
-      const txb = createTxb({
-        config,
-        dominionSdk,
-        wallet: wallet!,
-        name,
-        coinType,
-        link,
-        minWeightToCreateProposal,
-        voteThreshold,
-        maxVotingTime,
-      });
-      return mutation.mutateAsync({ transactionBlock: txb }, options);
-    },
-  };
-};
+  return useMemo(
+    () => ({
+      ...mutation,
+      mutate(
+        params: CreateGovernanceParams,
+        options?: Parameters<typeof mutation.mutate>[1]
+      ) {
+        const txb = createTxb({
+          config,
+          registry,
+          sdk: dominionSdk,
+          wallet,
+          ...params,
+        });
+        return mutation.mutate({ transactionBlock: txb }, options);
+      },
+      mutateAsync(
+        params: CreateGovernanceParams,
+        options?: Parameters<typeof mutation.mutateAsync>[1]
+      ) {
+        const txb = createTxb({
+          config,
+          registry,
+          sdk: dominionSdk,
+          wallet,
+          ...params,
+        });
+        return mutation.mutateAsync({ transactionBlock: txb }, options);
+      },
+    }),
+    [config, dominionSdk, mutation, registry, wallet]
+  );
+}
+
+export default useCreateGovernance;

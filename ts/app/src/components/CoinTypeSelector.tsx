@@ -2,7 +2,7 @@ import { Autocomplete, TextField } from "@mui/material";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import userCoinTypesQO from "../queryOptions/user/userCoinTypesQO";
 import { Network } from "../config/network";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import useConfig from "../hooks/useConfig";
 
 const suiType = "0x2::sui::SUI";
@@ -15,14 +15,14 @@ function CoinTypeSelector({
 }: {
   network: Network;
   wallet: string;
-  value: string | null;
-  onChange: (value: string | null) => void;
+  value: string;
+  onChange: (e: string | null) => void;
 }) {
   const { data: coinTypes } = useSuspenseQuery(
     userCoinTypesQO({ network, wallet })
   );
 
-  const config = useConfig();
+  const config = useConfig({ network });
 
   const improvedCoinTypes = useMemo(() => {
     const testCoinType: string | undefined =
@@ -36,17 +36,13 @@ function CoinTypeSelector({
     );
   }, [coinTypes, config.testCoin]);
 
-  useEffect(() => {
-    if (value === null) {
-      onChange(improvedCoinTypes[0]);
-    }
-  });
-
   return (
     <Autocomplete
       freeSolo={true}
       options={improvedCoinTypes}
-      renderInput={(params) => <TextField {...params} label="Coin type" />}
+      renderInput={(params) => (
+        <TextField name="coinType" {...params} label="Coin type" />
+      )}
       value={value}
       onChange={(_, value) => onChange(value)}
     />

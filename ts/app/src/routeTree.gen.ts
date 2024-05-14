@@ -17,6 +17,11 @@ import { Route as AppIndexImport } from './routes/app/index'
 import { Route as AppMyImport } from './routes/app/my'
 import { Route as AppCreateImport } from './routes/app/create'
 import { Route as AppDominionDominionIdImport } from './routes/app/dominion/$dominionId'
+import { Route as AppDominionDominionIdIndexImport } from './routes/app/dominion/$dominionId/index'
+import { Route as AppDominionDominionIdSettingsImport } from './routes/app/dominion/$dominionId/settings'
+import { Route as AppDominionDominionIdProposalsImport } from './routes/app/dominion/$dominionId/proposals'
+import { Route as AppDominionDominionIdParticipateImport } from './routes/app/dominion/$dominionId/participate'
+import { Route as AppDominionDominionIdCreateProposalImport } from './routes/app/dominion/$dominionId/createProposal'
 
 // Create/Update Routes
 
@@ -50,6 +55,37 @@ const AppDominionDominionIdRoute = AppDominionDominionIdImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 
+const AppDominionDominionIdIndexRoute = AppDominionDominionIdIndexImport.update(
+  {
+    path: '/',
+    getParentRoute: () => AppDominionDominionIdRoute,
+  } as any,
+)
+
+const AppDominionDominionIdSettingsRoute =
+  AppDominionDominionIdSettingsImport.update({
+    path: '/settings',
+    getParentRoute: () => AppDominionDominionIdRoute,
+  } as any)
+
+const AppDominionDominionIdProposalsRoute =
+  AppDominionDominionIdProposalsImport.update({
+    path: '/proposals',
+    getParentRoute: () => AppDominionDominionIdRoute,
+  } as any)
+
+const AppDominionDominionIdParticipateRoute =
+  AppDominionDominionIdParticipateImport.update({
+    path: '/participate',
+    getParentRoute: () => AppDominionDominionIdRoute,
+  } as any)
+
+const AppDominionDominionIdCreateProposalRoute =
+  AppDominionDominionIdCreateProposalImport.update({
+    path: '/createProposal',
+    getParentRoute: () => AppDominionDominionIdRoute,
+  } as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -78,6 +114,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDominionDominionIdImport
       parentRoute: typeof AppImport
     }
+    '/app/dominion/$dominionId/createProposal': {
+      preLoaderRoute: typeof AppDominionDominionIdCreateProposalImport
+      parentRoute: typeof AppDominionDominionIdImport
+    }
+    '/app/dominion/$dominionId/participate': {
+      preLoaderRoute: typeof AppDominionDominionIdParticipateImport
+      parentRoute: typeof AppDominionDominionIdImport
+    }
+    '/app/dominion/$dominionId/proposals': {
+      preLoaderRoute: typeof AppDominionDominionIdProposalsImport
+      parentRoute: typeof AppDominionDominionIdImport
+    }
+    '/app/dominion/$dominionId/settings': {
+      preLoaderRoute: typeof AppDominionDominionIdSettingsImport
+      parentRoute: typeof AppDominionDominionIdImport
+    }
+    '/app/dominion/$dominionId/': {
+      preLoaderRoute: typeof AppDominionDominionIdIndexImport
+      parentRoute: typeof AppDominionDominionIdImport
+    }
   }
 }
 
@@ -89,7 +145,13 @@ export const routeTree = rootRoute.addChildren([
     AppCreateRoute,
     AppMyRoute,
     AppIndexRoute,
-    AppDominionDominionIdRoute,
+    AppDominionDominionIdRoute.addChildren([
+      AppDominionDominionIdCreateProposalRoute,
+      AppDominionDominionIdParticipateRoute,
+      AppDominionDominionIdProposalsRoute,
+      AppDominionDominionIdSettingsRoute,
+      AppDominionDominionIdIndexRoute,
+    ]),
   ]),
 ])
 

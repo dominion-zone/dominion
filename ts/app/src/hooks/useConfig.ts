@@ -1,10 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { configQO } from "../queryOptions/configQO";
-import { useSuiClientContext } from "@mysten/dapp-kit";
 import { Network } from "../config/network";
 
-function useConfig() {
-  const { network } = useSuiClientContext();
+function useConfig({ network }: { network: Network }) {
   return useSuspenseQuery(configQO()).data[network as Network];
 }
 
