@@ -1,6 +1,6 @@
 module dominion::command {
+    use std::type_name::{Self, TypeName};
     use std::string::String;
-    use dominion::commander_cap::CommanderCap;
     use sui::{dynamic_field, dynamic_object_field};
 
     const TPayload: u8 = 0;
@@ -9,21 +9,21 @@ module dominion::command {
     public struct Command has key, store {
         id: UID,
         dominion_id: ID,
-        commander_cap_id: ID,
+        commander: TypeName,
         is_executed: bool,
         execution_error: Option<String>,
     }
 
-    public(package) fun new<T, P: store>(
+    public(package) fun new<C: drop, P: store>(
         dominion_id: ID,
+        _commander: C,
         payload: P,
-        commander_cap: &CommanderCap<T>,
         ctx: &mut TxContext,
     ): Command {
         let mut self = Command {
             id: object::new(ctx),
             dominion_id,
-            commander_cap_id: object::id(commander_cap),
+            commander: type_name::get<C>(),
             is_executed: false,
             execution_error: option::none(),
         };
@@ -31,16 +31,16 @@ module dominion::command {
         self
     }
 
-    public(package) fun new_from_object<T, P: key + store>(
+    public(package) fun new_from_object<C: drop, P: key + store>(
         dominion_id: ID,
+        _commander: C,
         payload: P,
-        commander_cap: &CommanderCap<T>,
         ctx: &mut TxContext,
     ): Command {
         let mut self = Command {
             id: object::new(ctx),
             dominion_id,
-            commander_cap_id: object::id(commander_cap),
+            commander: type_name::get<C>(),
             is_executed: false,
             execution_error: option::none(),
         };
@@ -66,7 +66,7 @@ module dominion::command {
         let Command {
             mut id,
             dominion_id: _,
-            commander_cap_id: _,
+            commander: _,
             is_executed: _,
             execution_error: _,
         } = self;
@@ -81,7 +81,7 @@ module dominion::command {
         let Command {
             mut id,
             dominion_id: _,
-            commander_cap_id: _,
+            commander: _,
             is_executed: _,
             execution_error: _,
         } = self;
@@ -90,7 +90,36 @@ module dominion::command {
         payload
     }
 
+    public fun destroy<P: store + drop>(
+        self: Command,
+    ) {
+        let Command {
+            mut id,
+            dominion_id: _,
+            commander: _,
+            is_executed: _,
+            execution_error: _,
+        } = self;
+        dynamic_field::remove<u8, P>(&mut id, TPayload);
+        id.delete();
+    }
+
+    public fun destroy_object<P: key + store + drop>(
+        self: Command,
+    ) {
+        let Command {
+            mut id,
+            dominion_id: _,
+            commander: _,
+            is_executed: _,
+            execution_error: _,
+        } = self;
+        dynamic_field::remove<u8, P>(&mut id, TObjectPayload);
+        id.delete();
+    }
+
     public(package) fun mark_executed(self: &mut Command) {
+        self.execution_error = option::none();
         self.is_executed = true;
     }
 
@@ -105,8 +134,12 @@ module dominion::command {
         self.dominion_id
     }
 
-    public fun commander_cap_id(self: &Command): ID {
-        self.commander_cap_id
+    public fun commander(self: &Command): TypeName {
+        self.commander
+    }
+
+    public fun check_commander<C: drop>(self: &Command): bool {
+        self.commander == type_name::get<C>()
     }
 
     public fun is_executed(self: &Command): bool {

@@ -1,41 +1,37 @@
-import { Container } from "@mui/material";
+import { Container, List } from "@mui/material";
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
-import userDominionsQO from "../../queryOptions/user/userDominionsQO";
+import DominionIndexHeader from "../../components/DominionIndexHeader";
+import { registryDominionsQO } from "../../queryOptions/registryQO";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import DominionListItem from "../../components/DominionListItem";
 
 export const Route = createFileRoute("/app/")({
   component: AppIndex,
-  validateSearch: z.object({
-    wallet: z.string().optional(),
-  }),
-  loaderDeps: ({ search: { network, wallet } }) => ({ network, wallet }),
-  loader: ({ deps: { network, wallet }, context: { queryClient } }) =>
-    queryClient.ensureQueryData(
-      userDominionsQO({ network, wallet, queryClient })
-    ),
+  loaderDeps: ({ search: { network } }) => ({ network }),
+  loader: ({ deps: { network }, context: { queryClient } }) =>
+    queryClient.ensureQueryData(registryDominionsQO({ network, queryClient })),
 });
 
 function AppIndex() {
-  const {network, wallet} = Route.useSearch();
-
+  const { network } = Route.useSearch();
   const queryClient = useQueryClient();
-
-  const { data: dominions } = useSuspenseQuery(
-    userDominionsQO({
-      network,
-      wallet,
-      queryClient,
-    })
+  const { data: registry } = useSuspenseQuery(
+    registryDominionsQO({ network, queryClient })
   );
 
-  if (!wallet) {
-    return <Container>Please connect wallet to list your dominions</Container>;
-  }
-
-  return <Container>
-    {dominions.map((dominion) => {
-      return <div key={dominion.dominionId}>{dominion.dominionId}</div>;
-    })}
-  </Container>;
+  return (
+    <Container>
+      <DominionIndexHeader tab="public" />
+      <List>
+        {registry.map(({ urlName, dominion, governance }) => (
+          <DominionListItem
+            key={dominion.id}
+            urlName={urlName}
+            dominion={dominion}
+            governance={governance}
+          />
+        ))}
+      </List>
+    </Container>
+  );
 }

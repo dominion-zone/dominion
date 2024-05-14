@@ -1,11 +1,12 @@
 module dominion_governance::governance {
-    use dominion::dominion::{Self, DominionOwnerCap};
+    use dominion::dominion::{Dominion, DominionOwnerCap};
     use std::string::String;
     use sui::url::Url;
     use sui::bag::{Self, Bag};
 
     const EInvalidAdminCap: u64 = 0;
-    const EProposalNotFound: u64 = 1;
+    const EInvalidVetoCap: u64 = 1;
+    // const EProposalNotFound: u64 = 1;
 
     public struct GovernanceAdminCap has key, store {
         id: UID,
@@ -20,7 +21,9 @@ module dominion_governance::governance {
     public struct Governance<phantom T> has key {
         id: UID,
         admin_cap_id: ID,
+        admin_address: address,
         veto_cap_id: ID,
+        veto_address: address,
         dominion_owner_cap: DominionOwnerCap,
         name: String,
         link: Url,
@@ -34,6 +37,7 @@ module dominion_governance::governance {
     }
 
     public fun new<T>(
+        dominion: &mut Dominion,
         dominion_owner_cap: DominionOwnerCap,
         name: String,
         link: Url,
@@ -44,11 +48,20 @@ module dominion_governance::governance {
     ): (Governance<T>, GovernanceAdminCap, VetoCap) {
         let admin_cap_uid = object::new(ctx);
         let veto_cap_uid = object::new(ctx);
+        let self_uid = object::new(ctx);
+        let governance_id = self_uid.to_inner();
+
+        dominion.set_owner_address(
+            &dominion_owner_cap,
+            governance_id.to_address()
+        );
 
         let self = Governance<T> {
-            id: object::new(ctx),
+            id: self_uid,
             admin_cap_id: admin_cap_uid.to_inner(),
+            admin_address: admin_cap_uid.to_address(),
             veto_cap_id: veto_cap_uid.to_inner(),
+            veto_address: veto_cap_uid.to_address(),
             dominion_owner_cap,
             name,
             link,
@@ -60,8 +73,6 @@ module dominion_governance::governance {
             hold_up_time: 0,
             extra_weight_lock_time: 0,
         };
-
-        let governance_id = object::id(&self);
 
         let admin_cap = GovernanceAdminCap {
             id: admin_cap_uid,
@@ -103,8 +114,40 @@ module dominion_governance::governance {
         self.admin_cap_id
     }
 
+    public fun admin_address<T>(self: &Governance<T>): address {
+        self.admin_address
+    }
+
+    public fun set_admin_address<T>(
+        self: &mut Governance<T>,
+        admin_cap: &GovernanceAdminCap,
+        admin_address: address
+    ) {
+        assert!(
+            object::id(admin_cap) == self.admin_cap_id,
+            EInvalidAdminCap
+        );
+        self.admin_address = admin_address;
+    }
+
     public fun veto_cap_id<T>(self: &Governance<T>): ID {
         self.veto_cap_id
+    }
+
+    public fun veto_address<T>(self: &Governance<T>): address {
+        self.veto_address
+    }
+
+    public fun set_veto_address<T>(
+        self: &mut Governance<T>,
+        veto_cap: &VetoCap,
+        veto_address: address
+    ) {
+        assert!(
+            object::id(veto_cap) == self.veto_cap_id,
+            EInvalidVetoCap
+        );
+        self.veto_address = veto_address;
     }
     
     public fun name<T>(self: &Governance<T>): String {
@@ -116,7 +159,10 @@ module dominion_governance::governance {
         admin_cap: &GovernanceAdminCap,
         new_name: String
     ) {
-        assert!(object::id(admin_cap) == self.admin_cap_id, EInvalidAdminCap);
+        assert!(
+            object::id(admin_cap) == self.admin_cap_id,
+            EInvalidAdminCap
+        );
         self.name = new_name;
     }
 
@@ -129,7 +175,10 @@ module dominion_governance::governance {
         admin_cap: &GovernanceAdminCap,
         new_link: Url
     ) {
-        assert!(object::id(admin_cap) == self.admin_cap_id, EInvalidAdminCap);
+        assert!(
+            object::id(admin_cap) == self.admin_cap_id,
+            EInvalidAdminCap
+        );
         self.link = new_link;
     }
 

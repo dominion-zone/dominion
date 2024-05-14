@@ -1,4 +1,3 @@
-import {Config} from '@dominion.zone/dominion-sdk';
 import {Command} from 'commander';
 import {exec} from 'mz/child_process';
 import {readFile, writeFile} from 'mz/fs';
@@ -10,19 +9,19 @@ export const installDeployCLI = (program: Command) => {
 
 const deployAction = async () => {
   const {couchdb, appConfig, env} = getContext();
-
-  const newConfig = {
-    ...((appConfig[env] || {
+  if (!appConfig[env]) {
+    appConfig[env] = {
       dominion: {
         contract: '',
-        adminControl: '',
       },
       governance: {
         contract: '',
-        adminControl: '',
       },
-    }) as Config),
-  };
+      registry: {
+        contract: '',
+      },
+    };
+  }
 
   {
     let moveToml = await readFile('../../sui/dominion/Move.toml', 'utf8');
@@ -33,7 +32,7 @@ const deployAction = async () => {
   {
     console.log('Deploying dominion contract');
     const [out] = await exec(
-      'sui client publish --gas-budget 3000000000 --json ../../sui/dominion',
+      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion',
       {
         encoding: 'utf8',
       }
@@ -42,23 +41,25 @@ const deployAction = async () => {
     const p = logs.objectChanges.find(
       ({type}: {type: string}) => type === 'published'
     );
-    newConfig.dominion.contract = p.packageId;
-    console.log('Dominion contract: ', newConfig.dominion.contract);
+    appConfig[env].dominion.contract = p.packageId;
+    console.log('Dominion contract: ', appConfig[env].dominion.contract);
+    /*
     newConfig.dominion.adminControl = logs.objectChanges.find(
       ({objectType}: {objectType: string}) =>
         objectType ===
         `${newConfig.dominion.contract}::dominion_admin_commander::DominionAdminControl`
     ).objectId;
     console.log('Dominion admin control: ', newConfig.dominion.adminControl);
+    */
 
     let moveToml = await readFile('../../sui/dominion/Move.toml', 'utf8');
     moveToml = moveToml.replace(
       /published-at = ".*"/,
-      `published-at = "${newConfig.dominion.contract}"`
+      `published-at = "${appConfig[env].dominion.contract}"`
     );
     moveToml = moveToml.replace(
       /dominion = ".*"/,
-      `dominion = "${newConfig.dominion.contract}"`
+      `dominion = "${appConfig[env].dominion.contract}"`
     );
     await writeFile('../../sui/dominion/Move.toml', moveToml, 'utf8');
   }
@@ -66,7 +67,7 @@ const deployAction = async () => {
   {
     console.log('Deploying governance contract');
     const [out] = await exec(
-      'sui client publish --gas-budget 3000000000 --json ../../sui/dominion_governance',
+      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion_governance',
       {
         encoding: 'utf8',
       }
@@ -76,9 +77,12 @@ const deployAction = async () => {
     const p = logs.objectChanges.find(
       ({type}: {type: string}) => type === 'published'
     );
-    newConfig.governance.contract = p.packageId;
-    console.log('Governance contract: ', newConfig.governance.contract);
+    appConfig[env].governance = {
+      contract: p.packageId,
+    };
+    console.log('Governance contract: ', appConfig[env].governance.contract);
 
+    /*
     newConfig.governance.adminControl = logs.objectChanges.find(
       ({objectType}: {objectType: string}) =>
         objectType ===
@@ -88,6 +92,7 @@ const deployAction = async () => {
       'Governance admin control: ',
       newConfig.governance.adminControl
     );
+    */
 
     let moveToml = await readFile(
       '../../sui/dominion_governance/Move.toml',
@@ -95,7 +100,7 @@ const deployAction = async () => {
     );
     moveToml = moveToml.replace(
       /published-at = ".*"/,
-      `published-at = "${newConfig.governance.contract}"`
+      `published-at = "${appConfig[env].governance.contract}"`
     );
     await writeFile(
       '../../sui/dominion_governance/Move.toml',
@@ -104,20 +109,44 @@ const deployAction = async () => {
     );
   }
 
-  await couchdb.post(
-    process.env.VITE_CONFIG_PATH as string,
-    {
-      ...appConfig,
-      [env]: newConfig,
+  {
+    console.log('Deploying registry contract');
+    const [out] = await exec(
+      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion_registry',
+      {
+        encoding: 'utf8',
+      }
+    );
+
+    const logs = JSON.parse(out);
+    const p = logs.objectChanges.find(
+      ({type}: {type: string}) => type === 'published'
+    );
+    appConfig[env].registry = {
+      contract: p.packageId,
+    };
+    console.log('Registry contract: ', appConfig[env].registry.contract);
+
+    let moveToml = await readFile(
+      '../../sui/dominion_registry/Move.toml',
+      'utf8'
+    );
+    moveToml = moveToml.replace(
+      /published-at = ".*"/,
+      `published-at = "${appConfig[env].registry.contract}"`
+    );
+    await writeFile('../../sui/dominion_registry/Move.toml', moveToml, 'utf8');
+  }
+
+  await couchdb.put(process.env.VITE_CONFIG_PATH as string, appConfig, {
+    headers: {
+      Authorization:
+        'Basic ' +
+        Buffer.from(
+          process.env.COUCHDB_USER + ':' + process.env.COUCHDB_PASSWORD
+        ).toString('base64'),
+
+      Referer: 'https://dominion.zone',
     },
-    {
-      headers: {
-        Authorization:
-          'Basic ' +
-          Buffer.from(
-            process.env.COUCHDB_USER + ':' + process.env.COUCHDB_PASSWORD
-          ).toString('base64'),
-      },
-    }
-  );
+  });
 };

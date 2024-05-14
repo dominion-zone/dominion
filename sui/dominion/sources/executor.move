@@ -1,13 +1,13 @@
 module dominion::executor {
+    use std::type_name::TypeName;
     use std::string::String;
     use dominion::command::Command;
-    use dominion::commander_cap::CommanderCap;
 
     public struct Executor {
         command: Command
     }
 
-    const EWrongCommanderCap: u64 = 0;
+    const EWrongCommander: u64 = 0;
     const ECommandAlreadyExecuted: u64 = 2;
 
     public(package) fun new(
@@ -28,28 +28,35 @@ module dominion::executor {
         &self.command
     }
 
-    public fun commit<T>(
+    public fun commit<C: drop>(
         self: Executor,
-        commander_cap: &CommanderCap<T>,
+        _commander: C,
     ): Command {
         let Executor {
             mut command
         } = self;
-        assert!(object::id(commander_cap) == command.commander_cap_id(), EWrongCommanderCap);
-        command.set_execution_error(option::none());
+        assert!(command.check_commander<C>(), EWrongCommander);
+        assert!(
+            !command.is_executed(),
+            ECommandAlreadyExecuted
+        );
         command.mark_executed();
         command
     }
 
-    public fun report_error<T>(
+    public fun report_error<C: drop>(
         self: Executor,
         error: String,
-        commander_cap: &CommanderCap<T>,
+        _commander: C,
     ): Command {
         let Executor {
             mut command
         } = self;
-        assert!(object::id(commander_cap) == command.commander_cap_id(), EWrongCommanderCap);
+        assert!(command.check_commander<C>(), EWrongCommander);
+        assert!(
+            !command.is_executed(),
+            ECommandAlreadyExecuted
+        );
         command.set_execution_error(option::some(error));
         command
     }
@@ -70,8 +77,12 @@ module dominion::executor {
         self.command.dominion_id()
     }
 
-    public fun commander_cap_id(self: &Executor): ID {
-        self.command.commander_cap_id()
+    public fun commander(self: &Executor): TypeName {
+        self.command.commander()
+    }
+
+    public fun check_commander<C: drop>(self: &Executor): bool {
+        self.command.check_commander<C>()
     }
 
     public fun is_executed(self: &Executor): bool {

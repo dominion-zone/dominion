@@ -5,11 +5,13 @@ import axios from "axios";
 export type Config = {
   dominion: {
     contract: string;
-    adminControl: string;
   };
   governance: {
     contract: string;
-    adminControl: string;
+  };
+  registry: {
+    contract: string;
+    main: string;
   };
   testCoin?: {
     contract: string;
@@ -21,7 +23,7 @@ export type GlobalConfig = Record<Network, Config>;
 
 const couchdb = axios.create({
   baseURL: import.meta.env.VITE_COUCHDB_URL as string,
-  timeout: 1000,
+  timeout: 10000,
 });
 
 export const configQO = () => {

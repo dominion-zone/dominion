@@ -5,11 +5,13 @@ import {AxiosInstance} from 'axios';
 export type Config = {
   dominion: {
     contract: string;
-    adminControl: string;
   };
   governance: {
     contract: string;
-    adminControl: string;
+  };
+  registry: {
+    contract: string;
+    main?: string;
   };
   testCoin?: {
     contract: string;

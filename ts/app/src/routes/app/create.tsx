@@ -1,4 +1,4 @@
-import { Button, Stack, TextField } from "@mui/material";
+import { Button, Container, Stack, TextField } from "@mui/material";
 import { createFileRoute } from "@tanstack/react-router";
 import CoinTypeSelector from "../../components/CoinTypeSelector";
 import { z } from "zod";
@@ -6,6 +6,7 @@ import userCoinTypesQO from "../../queryOptions/user/userCoinTypesQO";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { ChangeEvent, FormEvent, useCallback, useState } from "react";
 import { useCreateGovernance } from "../../hooks/mutations/useCreateGovernance";
+import DominionIndexHeader from "../../components/DominionIndexHeader";
 
 export const Route = createFileRoute("/app/create")({
   component: CreateGovernance,
@@ -81,53 +82,56 @@ function CreateGovernance() {
   );
 
   return (
-    <Stack direction="column" component="form" onSubmit={handleSubmit}>
-      <h1>Create governance</h1>
-      <TextField
-        name="name"
-        label="Name"
-        value={name}
-        onChange={handleNameChange}
-      />
-      <CoinTypeSelector
-        network={network}
-        wallet={wallet}
-        value={coinType}
-        onChange={setCoinType}
-      />
-      <TextField
-        name="link"
-        label="Link"
-        value={link}
-        onChange={handleLinkChange}
-      />
-      <TextField
-        type="number"
-        name="minWeightToCreateProposal"
-        label="Min weight to create proposal"
-        value={minWeightToCreateProposal}
-        onChange={handleMinWeightToCreateProposalChange}
-      />
-      <TextField
-        type="number"
-        name="voteThreshold"
-        label="Vote threshold"
-        value={voteThreshold}
-        onChange={handleVoteThresholdChange}
-      />
-      <TextField
-        type="number"
-        name="maxVotingTime"
-        label="Max voting time minutes"
-        value={maxVotingTime}
-        onChange={handleMaxVotingTimeChange}
-      />
-      <Button
-        type="submit"
-        disabled={!currentAccount || createGovernance.isPending}
-      >
-        Create
-      </Button>
-    </Stack>
+    <Container>
+      <DominionIndexHeader tab="create" />
+      <h3>Create governance</h3>
+      <Stack direction="column" component="form" onSubmit={handleSubmit}>
+        <TextField
+          name="name"
+          label="Name"
+          value={name}
+          onChange={handleNameChange}
+        />
+        <CoinTypeSelector
+          network={network}
+          wallet={wallet}
+          value={coinType}
+          onChange={setCoinType}
+        />
+        <TextField
+          name="link"
+          label="Link"
+          value={link}
+          onChange={handleLinkChange}
+        />
+        <TextField
+          type="number"
+          name="minWeightToCreateProposal"
+          label="Min weight to create proposal"
+          value={minWeightToCreateProposal}
+          onChange={handleMinWeightToCreateProposalChange}
+        />
+        <TextField
+          type="number"
+          name="voteThreshold"
+          label="Vote threshold"
+          value={voteThreshold}
+          onChange={handleVoteThresholdChange}
+        />
+        <TextField
+          type="number"
+          name="maxVotingTime"
+          label="Max voting time minutes"
+          value={maxVotingTime}
+          onChange={handleMaxVotingTimeChange}
+        />
+        <Button
+          type="submit"
+          disabled={!currentAccount || createGovernance.isPending}
+        >
+          Create
+        </Button>
+      </Stack>
+    </Container>
   );
 }

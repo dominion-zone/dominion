@@ -4,16 +4,15 @@ module dominion_governance::governance_admin_commander {
     use std::ascii::String as AsciiString;
     use sui::url::{Self, Url};
     use sui::transfer::Receiving;
-    use dominion::commander_cap::{Self, CommanderCap};
     use dominion::command::Command;
     use dominion::executor::Executor;
     use dominion::dominion::{Self, Dominion, DominionAdminCap};
     use dominion_governance::governance::{Self, Governance, GovernanceAdminCap, VetoCap};
-    use dominion::dominion_admin_commander::{Self, DominionAdminControl};
+    use dominion::dominion_admin_commander;
 
     const EInvalidCommandKind: u64 = 0;
     const EInvalidTargetGovernance: u64 = 1;
-    const EInvalidDominion: u64 = 2;
+    // const EInvalidDominion: u64 = 2;
 
     const KTransferAdminCap: u8 = 0;
     const KSetName: u8 = 1;
@@ -27,12 +26,7 @@ module dominion_governance::governance_admin_commander {
     const TNewMinWeightToCreateProposal: u8 = 35;
     const TNewVoteThreshold: u8 = 36;
 
-    public struct GOVERNANCE_ADMIN_COMMANDER has drop()
-
-    public struct GovernanceAdminControl has key {
-        id: UID,
-        commander_cap: CommanderCap<GOVERNANCE_ADMIN_COMMANDER>,
-    }
+    public struct GovernanceAdminCommander has drop()
 
     public struct AdminCommand has key, store {
         id: UID,
@@ -40,25 +34,11 @@ module dominion_governance::governance_admin_commander {
         target_governance_id: ID,
     }
 
-    #[allow(lint(freeze_wrapped))]
-    fun init(
-        w: GOVERNANCE_ADMIN_COMMANDER,
-        ctx: &mut TxContext,
-    ) {
-        let commander_cap = commander_cap::new(w, ctx);
-        transfer::freeze_object(GovernanceAdminControl {
-            id: object::new(ctx),
-            commander_cap
-        });
-    }
-
     public entry fun enable(
         dominion: &mut Dominion,
         admin_cap: &DominionAdminCap,
-        admin_control: &GovernanceAdminControl,
     ) {
-        dominion.enable_commander(
-            object::id(&admin_control.commander_cap),
+        dominion.enable_commander<GovernanceAdminCommander>(
             admin_cap,
         );
     }
@@ -66,10 +46,8 @@ module dominion_governance::governance_admin_commander {
     public entry fun disable(
         dominion: &mut Dominion,
         admin_cap: &DominionAdminCap,
-        admin_control: &GovernanceAdminControl,
     ) {
-        dominion.disable_commander(
-            object::id(&admin_control.commander_cap),
+        dominion.disable_commander<GovernanceAdminCommander>(
             admin_cap,
         );
     }
@@ -78,7 +56,6 @@ module dominion_governance::governance_admin_commander {
         dominion: &Dominion,
         target_governance: &Governance<T>,
         admin_cap_recipient: address,
-        admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -91,9 +68,9 @@ module dominion_governance::governance_admin_commander {
             TAdminCapRecepient,
             admin_cap_recipient
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<GovernanceAdminCommander, AdminCommand>(
+            GovernanceAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -102,7 +79,6 @@ module dominion_governance::governance_admin_commander {
         dominion: &Dominion,
         target_governance: &Governance<T>,
         new_name: String,
-        admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -115,9 +91,9 @@ module dominion_governance::governance_admin_commander {
             TNewName,
             new_name
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<GovernanceAdminCommander, AdminCommand>(
+            GovernanceAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -126,7 +102,6 @@ module dominion_governance::governance_admin_commander {
         dominion: &Dominion,
         target_governance: &Governance<T>,
         new_link: Url,
-        admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -139,9 +114,9 @@ module dominion_governance::governance_admin_commander {
             TNewLink,
             new_link
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<GovernanceAdminCommander, AdminCommand>(
+            GovernanceAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -150,7 +125,6 @@ module dominion_governance::governance_admin_commander {
         dominion: &Dominion,
         target_governance: &Governance<T>,
         new_min_weight_to_create_proposal: u64,
-        admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -163,9 +137,9 @@ module dominion_governance::governance_admin_commander {
             TNewMinWeightToCreateProposal,
             new_min_weight_to_create_proposal
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<GovernanceAdminCommander, AdminCommand>(
+            GovernanceAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -174,12 +148,11 @@ module dominion_governance::governance_admin_commander {
         dominion: &Dominion,
         target_governance: &Governance<T>,
         new_vote_threshold: u64,
-        admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
             id: object::new(ctx),
-            kind: KSetMinWeightToCreateProposal,
+            kind: KSetVoteThreshold,
             target_governance_id: object::id(target_governance),
         };
         dynamic_field::add(
@@ -187,9 +160,9 @@ module dominion_governance::governance_admin_commander {
             TNewVoteThreshold,
             new_vote_threshold
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<GovernanceAdminCommander, AdminCommand>(
+            GovernanceAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -198,7 +171,6 @@ module dominion_governance::governance_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<GovernanceAdminCap>,
-        admin_control: &GovernanceAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -209,7 +181,7 @@ module dominion_governance::governance_admin_commander {
         let recepient = dynamic_field::borrow<u8, address>(&command.id, TAdminCapRecepient);
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id(GovernanceAdminCommander()),
             receiving_admin_cap
         );
         assert!(
@@ -222,8 +194,8 @@ module dominion_governance::governance_admin_commander {
             *recepient
         );
 
-        executor.commit(
-            &admin_control.commander_cap
+        executor.commit<GovernanceAdminCommander>(
+            GovernanceAdminCommander()
         )
     }
 
@@ -233,8 +205,6 @@ module dominion_governance::governance_admin_commander {
         min_weight_to_create_proposal: u64,
         vote_threshold: u64,
         max_voting_time: u64,
-        dominion_admin_control: &DominionAdminControl,
-        governance_admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext
     ): (Dominion, Governance<T>, VetoCap) {
         let (
@@ -247,12 +217,10 @@ module dominion_governance::governance_admin_commander {
         dominion_admin_commander::enable(
             &mut dominion,
             &dominion_admin_cap,
-            dominion_admin_control
         );
         enable(
             &mut dominion,
             &dominion_admin_cap,
-            governance_admin_control,
         );
 
         let (
@@ -260,6 +228,7 @@ module dominion_governance::governance_admin_commander {
             governance_admin_cap,
             veto_cap
         ) = governance::new<T>(
+            &mut dominion,
             dominion_owner_cap,
             name,
             url::new_unsafe(link),
@@ -288,8 +257,6 @@ module dominion_governance::governance_admin_commander {
         min_weight_to_create_proposal: u64,
         vote_threshold: u64,
         max_voting_time: u64,
-        dominion_admin_control: &DominionAdminControl,
-        governance_admin_control: &GovernanceAdminControl,
         ctx: &mut TxContext
     ) {
         let (
@@ -302,8 +269,6 @@ module dominion_governance::governance_admin_commander {
             min_weight_to_create_proposal,
             vote_threshold,
             max_voting_time,
-            dominion_admin_control,
-            governance_admin_control,
             ctx 
         );
 

@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as AppImport } from './routes/app'
 import { Route as IndexImport } from './routes/index'
 import { Route as AppIndexImport } from './routes/app/index'
+import { Route as AppMyImport } from './routes/app/my'
 import { Route as AppCreateImport } from './routes/app/create'
 import { Route as AppDominionDominionIdImport } from './routes/app/dominion/$dominionId'
 
@@ -31,6 +32,11 @@ const IndexRoute = IndexImport.update({
 
 const AppIndexRoute = AppIndexImport.update({
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+
+const AppMyRoute = AppMyImport.update({
+  path: '/my',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -60,6 +66,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCreateImport
       parentRoute: typeof AppImport
     }
+    '/app/my': {
+      preLoaderRoute: typeof AppMyImport
+      parentRoute: typeof AppImport
+    }
     '/app/': {
       preLoaderRoute: typeof AppIndexImport
       parentRoute: typeof AppImport
@@ -77,6 +87,7 @@ export const routeTree = rootRoute.addChildren([
   IndexRoute,
   AppRoute.addChildren([
     AppCreateRoute,
+    AppMyRoute,
     AppIndexRoute,
     AppDominionDominionIdRoute,
   ]),

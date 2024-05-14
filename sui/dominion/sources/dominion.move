@@ -1,20 +1,21 @@
 module dominion::dominion {
+    use std::type_name::{Self, TypeName};
     use sui::vec_set::{Self, VecSet};
-    use dominion::commander_cap::CommanderCap;
     use dominion::command::{Self, Command};
     use dominion::executor::{Self, Executor};
 
-    const EInvalidCommanderCap: u64 = 1;
+    const EInvalidCommander: u64 = 1;
     const EInvalidAdminCap: u64 = 2;
     const EInvalidOwnerCap: u64 = 3;
     const EInvalidCommandDominion: u64 = 4;
-    const EInvalidCommandCommanderCap: u64 = 5;
 
     public struct Dominion has key {
         id: UID,
         admin_cap_id: ID,
+        admin_address: address,
         owner_cap_id: ID,
-        commander_cap_ids: VecSet<ID>,
+        owner_address: address,
+        commanders: VecSet<TypeName>,
     }
 
     public struct DominionAdminCap has key, store {
@@ -35,8 +36,10 @@ module dominion::dominion {
         let self = Dominion {
             id: object::new(ctx),
             admin_cap_id: admin_cap_uid.to_inner(),
+            admin_address: admin_cap_uid.to_address(),
             owner_cap_id: owner_cap_uid.to_inner(),
-            commander_cap_ids: vec_set::empty(),
+            owner_address: owner_cap_uid.to_address(),
+            commanders: vec_set::empty(),
         };
         let dominion_id = object::id(&self);
 
@@ -72,28 +75,42 @@ module dominion::dominion {
         );
     }*/
 
-    public fun enable_commander(
+    public fun enable_commander_by_name(
         self: &mut Dominion,
-        commander_cap_id: ID,
+        commander: TypeName,
         admin_cap: &DominionAdminCap,
     ) {
         assert!(
             self.admin_cap_id == object::id(admin_cap),
             EInvalidAdminCap
         );
-        vec_set::insert(&mut self.commander_cap_ids, commander_cap_id);
+        vec_set::insert(&mut self.commanders, commander);
     }
 
-    public fun disable_commander(
+    public fun enable_commander<C: drop>(
         self: &mut Dominion,
-        commander_cap_id: ID,
+        admin_cap: &DominionAdminCap,
+    ) {
+        self.enable_commander_by_name(type_name::get<C>(), admin_cap);
+    }
+
+    public fun disable_commander_by_name(
+        self: &mut Dominion,
+        commander: TypeName,
         admin_cap: &DominionAdminCap,
     ) {
         assert!(
             self.admin_cap_id == object::id(admin_cap),
             EInvalidAdminCap
         );
-        vec_set::remove(&mut self.commander_cap_ids, &commander_cap_id);
+        vec_set::remove(&mut self.commanders, &commander);
+    }
+
+    public fun disable_commander<C: drop>(
+        self: &mut Dominion,
+        admin_cap: &DominionAdminCap,
+    ) {
+        self.disable_commander_by_name(type_name::get<C>(), admin_cap);
     }
 
     public fun reset_owner_cap(
@@ -110,6 +127,7 @@ module dominion::dominion {
             dominion_id: object::id(self),
         };
         self.owner_cap_id = object::id(&owner_cap);
+        self.owner_address = object::id_address(&owner_cap);
         owner_cap
     }
 
@@ -136,75 +154,66 @@ module dominion::dominion {
     ): Executor {
         assert!(
             object::id(owner_cap) == self.owner_cap_id,
-            EInvalidOwnerCap
+            EInvalidOwnerCap,
         );
         assert!(
             command.dominion_id() == object::id(self),
             EInvalidCommandDominion,
         );
         assert!(
-            self.has_commander_cap_id(command.commander_cap_id()),
-            EInvalidCommandCommanderCap,
+            self.has_commander(command.commander()),
+            EInvalidCommander,
         );
         executor::new(
             command
         )
     }
 
-    public fun mut_id<T>(
+    public fun mut_id<C: drop>(
         self: &mut Dominion,
-        executor: &Executor,
-        commander_cap: &CommanderCap<T>
+        _commander: C
     ): &mut UID {
         assert!(
-            self.has_commander_cap_id(object::id(commander_cap)),
-            EInvalidCommanderCap,
-        );
-        assert!(
-            executor.dominion_id() == object::id(self),
-            EInvalidCommandDominion
-        );
-        assert!(
-            executor.commander_cap_id() == object::id(commander_cap),
-            EInvalidCommandCommanderCap
+            self.check_commander<C>(),
+            EInvalidCommander,
         );
         &mut self.id
     }
 
-    public fun new_command<T, P: store>(
+    public fun new_command<C: drop, P: store>(
         self: &Dominion,
+        commander: C,
         payload: P,
-        commander_cap: &CommanderCap<T>,
         ctx: &mut TxContext,
     ): Command {
         assert!(
-            self.has_commander_cap_id(object::id(commander_cap)),
-            EInvalidCommanderCap,
+            self.check_commander<C>(),
+            EInvalidCommander,
         );
 
-        command::new(
+        command::new<C, P>(
             object::id(self),
+            commander,
             payload,
-            commander_cap,
             ctx
         )
     }
 
-    public fun new_command_from_object<T, P: key + store>(
+    public fun new_command_from_object<C: drop, P: key + store>(
         self: &Dominion,
+        commander: C,
         payload: P,
-        commander_cap: &CommanderCap<T>,
         ctx: &mut TxContext,
     ): Command {
         assert!(
-            self.has_commander_cap_id(object::id(commander_cap)),
-            EInvalidCommanderCap,
+            self.check_commander<C>(),
+            EInvalidCommander,
         );
 
-        command::new_from_object(
+        command::new_from_object<C, P>(
             object::id(self),
+            commander,
             payload,
-            commander_cap,
             ctx
         )
     }
@@ -215,17 +224,61 @@ module dominion::dominion {
         self.admin_cap_id
     }
 
+    public fun admin_address(
+        self: &Dominion
+    ): address {
+        self.admin_address
+    }
+
+    public fun set_admin_address(
+        self: &mut Dominion,
+        admin_cap: &DominionAdminCap,
+        admin_address: address
+    ) {
+        assert!(
+            self.admin_cap_id == object::id(admin_cap),
+            EInvalidAdminCap
+        );
+
+        self.admin_address = admin_address;
+    }
+
     public fun owner_cap_id(
         self: &Dominion
     ): ID {
         self.owner_cap_id
     }
 
-    public fun has_commander_cap_id(
-        self: &Dominion,
-        commander_cap_id: ID
+    public fun owner_address(
+        self: &Dominion
+    ): address {
+        self.owner_address
+    }
+
+    public fun set_owner_address(
+        self: &mut Dominion,
+        owner_cap: &DominionOwnerCap,
+        owner_address: address
+    ) {
+        assert!(
+            object::id(owner_cap) == self.owner_cap_id,
+            EInvalidOwnerCap,
+        );
+
+        self.owner_address = owner_address;
+    }
+
+    public fun check_commander<C: drop>(
+        self: &Dominion
     ): bool {
-        vec_set::contains(&self.commander_cap_ids, &commander_cap_id)
+        self.has_commander(type_name::get<C>())
+    }
+
+    public fun has_commander(
+        self: &Dominion,
+        commander: TypeName
+    ): bool {
+        vec_set::contains(&self.commanders, &commander)
     }
 
     public fun admin_cap_dominion_id(

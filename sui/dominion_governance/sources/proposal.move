@@ -4,9 +4,9 @@ module dominion_governance::proposal {
     use sui::bag::{Self, Bag};
     use sui::clock::Clock;
 
-    use dominion::command::{Self, Command};
+    use dominion::command::Command;
 
-    use dominion_governance::governance::{Self, Governance};
+    use dominion_governance::governance::Governance;
 
     const EInvalidVoteFormat: u64 = 0;
 

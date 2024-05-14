@@ -4,13 +4,19 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  SxProps,
+  Theme
 } from "@mui/material";
 import { useSuiClientContext } from "@mysten/dapp-kit";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { configQO } from "../queryOptions/config";
+import { configQO } from "../queryOptions/configQO";
 
-function NetworkSelector() {
+export type NetworkSelectorProps = {
+  sx?: SxProps<Theme>;
+}
+
+function NetworkSelector({sx = []}: NetworkSelectorProps) {
   const { data: config } = useSuspenseQuery(configQO());
   const { network, selectNetwork } = useSuiClientContext();
 
@@ -23,7 +29,7 @@ function NetworkSelector() {
     [selectNetwork]
   );
   return (
-    <FormControl variant="standard">
+    <FormControl variant="standard" sx={sx}>
       <InputLabel id="network-select-label">Network</InputLabel>
       <Select
         labelId="network-select-label"

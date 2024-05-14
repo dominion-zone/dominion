@@ -1,13 +1,12 @@
 [package]
-name = "dominion"
+name = "dominion_registry"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
-version = "0.1.0"
-published-at = "0x7fb110ece5bd0403d9533408a2e0ae66092ec05aa68d4e5545b619944fe5dd9b"
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+dominion = { local = "../dominion" }
 
 # For remote import, use the `{ git = "...", subdir = "...", rev = "..." }`.
 # Revision can be a branch, a tag, and a commit hash.
@@ -21,7 +20,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 # Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-dominion = "0x7fb110ece5bd0403d9533408a2e0ae66092ec05aa68d4e5545b619944fe5dd9b"
+dominion_registry = "0x0"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.
@@ -35,5 +34,5 @@ dominion = "0x7fb110ece5bd0403d9533408a2e0ae66092ec05aa68d4e5545b619944fe5dd9b"
 [dev-addresses]
 # The dev-addresses section allows overwriting named addresses for the `--test`
 # and `--dev` modes.
-
+# alice = "0xB0B"
 

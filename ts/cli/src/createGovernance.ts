@@ -2,20 +2,19 @@
 import {TransactionBlock} from '@mysten/sui.js/transactions';
 import {Command} from 'commander';
 import {getContext} from './context';
-import {Dominion, Governance, Member} from '@dominion.zone/dominion-sdk';
-
-const testCoinType =
-  '0x2c00b82adf4c1a39754a1eb2e1e69368245fa623b42b0b7ef36658aebf9ed670::test_coin::TEST_COIN';
+import {
+  Dominion,
+  Governance,
+  Member,
+  Registry,
+} from '@dominion.zone/dominion-sdk';
 
 export const installCreateGovernance = (program: Command) => {
   program
     .command('create-governance')
+    .option('--url-name <name>', 'Name for URL')
     .option('--name <name>', 'Name of the governance', 'Test governance')
-    .option(
-      '--coin-type <coinType>',
-      'Coin type of the governance',
-      testCoinType
-    )
+    .option('--coin-type <coinType>', 'Coin type of the governance')
     .option(
       '--link <link>',
       'Link to the governance website',
@@ -34,6 +33,7 @@ export const installCreateGovernance = (program: Command) => {
 
 const createGovernanceAction = async ({
   name,
+  urlName,
   coinType,
   link,
   minWeightToCreateProposal,
@@ -41,14 +41,26 @@ const createGovernanceAction = async ({
   maxVotingTime,
 }: {
   name: string;
-  coinType: string;
+  urlName?: string;
+  coinType?: string;
   link: string;
   minWeightToCreateProposal: string;
   voteThreshold: string;
   maxVotingTime: string;
 }) => {
   const txb = new TransactionBlock();
-  const {wallet, dominionSDK: sdk} = getContext();
+  const {wallet, dominionSDK: sdk, appConfig, env} = getContext();
+
+  if (!coinType) {
+    coinType = `${appConfig[env].testCoin!.contract}::test_coin::TEST_COIN`;
+  }
+
+  const registry = await Registry.fetch({
+    sdk,
+    id: appConfig[env].registry.main!,
+  });
+
+  /*
   const {dominion, governance, vetoCap} =
     Governance.withNewSelfControlledDominionAndGovernance({
       sdk,
@@ -60,19 +72,67 @@ const createGovernanceAction = async ({
       maxVotingTime: BigInt(maxVotingTime),
       txb,
     });
+  */
+  const {
+    dominion,
+    adminCap: dominionAdminCap,
+    ownerCap,
+  } = Dominion.withNew({
+    sdk,
+    txb,
+  });
+
+  Dominion.withEnableAdminCommander({
+    sdk,
+    dominion,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+  Governance.withEnableAdminCommander({
+    sdk,
+    dominion,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+  registry.withPushBackEntry({
+    dominion,
+    urlName,
+    adminCap: dominionAdminCap,
+    txb,
+  });
+
+  const {governance, governanceAdminCap, vetoCap} = Governance.withNew({
+    sdk,
+    dominion,
+    dominionOwnerCap: ownerCap,
+    name,
+    coinType,
+    link,
+    minWeightToCreateProposal: BigInt(minWeightToCreateProposal),
+    voteThreshold: BigInt(voteThreshold),
+    maxVotingTime: BigInt(maxVotingTime),
+    txb,
+  });
+
+  txb.transferObjects(
+    [txb.object(dominionAdminCap), txb.object(governanceAdminCap)],
+    txb.moveCall({
+      target: '0x2::object::id_address',
+      typeArguments: [`${sdk.config.dominion.contract}::dominion::Dominion`],
+      arguments: [txb.object(dominion)],
+    })
+  );
 
   const member = Member.withNew({sdk, governance, coinType, txb});
 
-  if (coinType === testCoinType) {
-    // txb.
+  if (
+    coinType === `${appConfig[env].testCoin?.contract}::test_coin::TEST_COIN`
+  ) {
     const coin = txb.moveCall({
-      target:
-        '0x2c00b82adf4c1a39754a1eb2e1e69368245fa623b42b0b7ef36658aebf9ed670::test_coin::mint_coin',
+      target: `${appConfig[env].testCoin!.contract}::test_coin::mint_coin`,
       arguments: [
         txb.pure(1000000000000),
-        txb.object(
-          '0x133cbe3937328734e4061452a258c0c56f31027d8e948fe40e748d670ea0629e'
-        ),
+        txb.object(appConfig[env].testCoin!.control),
       ],
     });
 
@@ -91,4 +151,7 @@ const createGovernanceAction = async ({
     transactionBlock: txb,
   });
   console.log(r.digest);
+  if (r.errors) {
+    throw r.errors;
+  }
 };

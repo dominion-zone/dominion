@@ -24,6 +24,7 @@
     "lint": "gts lint",
     "clean": "gts clean",
     "build": "vite build",
+    "watch": "vite build --watch",
     "fix": "gts fix"
   },
   "keywords": [],

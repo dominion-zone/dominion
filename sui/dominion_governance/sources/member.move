@@ -5,7 +5,7 @@ module dominion_governance::member {
     use sui::coin::{Self, Coin};
     use sui::clock::Clock;
     use sui::math;
-    use dominion_governance::governance::{Self, Governance};
+    use dominion_governance::governance::Governance;
     use dominion_governance::proposal::{Self, Proposal, ProposalOwnerCap};
 
     const EInvalidGovernance: u64 = 0;

@@ -8,7 +8,7 @@ import {
   useCurrentAccount,
 } from "@mysten/dapp-kit";
 import { networkConfig, Network } from "../config/network";
-import { configQO } from "../queryOptions/config";
+import { configQO } from "../queryOptions/configQO";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,

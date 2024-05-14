@@ -43,6 +43,7 @@ type GovernanceData = {
 
 export class Governance {
   public constructor(
+    public readonly sdk: DominionSDK,
     public readonly id: string,
     public dominionId: string,
     public name: string,
@@ -54,8 +55,9 @@ export class Governance {
 
   public static withNew({
     sdk,
-    dominionOwnerCap,
     coinType,
+    dominion,
+    dominionOwnerCap,
     name,
     link,
     minWeightToCreateProposal,
@@ -64,19 +66,25 @@ export class Governance {
     txb,
   }: {
     sdk: DominionSDK;
-    dominionOwnerCap: TransactionObjectInput;
     coinType: string;
+    dominion: TransactionObjectInput;
+    dominionOwnerCap: TransactionObjectInput;
     name: string;
     link: string;
     minWeightToCreateProposal: bigint;
     voteThreshold: bigint;
     maxVotingTime: bigint;
     txb: TransactionBlock;
-  }): TransactionResult {
-    return txb.moveCall({
+  }): {
+    governance: TransactionObjectInput;
+    governanceAdminCap: TransactionObjectInput;
+    vetoCap: TransactionObjectInput;
+  } {
+    const [governance, governanceAdminCap, vetoCap] = txb.moveCall({
       target: `${sdk.config.governance.contract}::governance::new`,
       typeArguments: [coinType],
       arguments: [
+        txb.object(dominion),
         txb.object(dominionOwnerCap),
         txb.pure(name),
         txb.moveCall({
@@ -88,6 +96,12 @@ export class Governance {
         txb.pure(maxVotingTime),
       ],
     });
+
+    return {
+      governance,
+      governanceAdminCap,
+      vetoCap,
+    };
   }
 
   public static withCommit({
@@ -139,8 +153,6 @@ export class Governance {
         txb.pure(minWeightToCreateProposal),
         txb.pure(voteThreshold),
         txb.pure(maxVotingTime),
-        txb.object(sdk.config.dominion.adminControl),
-        txb.object(sdk.config.governance.adminControl),
       ],
       typeArguments: [coinType],
     });
@@ -175,15 +187,14 @@ export class Governance {
         txb.pure(minWeightToCreateProposal),
         txb.pure(voteThreshold),
         txb.pure(maxVotingTime),
-        txb.object(sdk.config.dominion.adminControl),
-        txb.object(sdk.config.governance.adminControl),
       ],
       typeArguments: [coinType],
     });
   }
 
-  static async fetch({sdk, id}: {id: string; sdk: DominionSDK}) {
-    const {
+  static fromData({
+    sdk,
+    data: {
       objectId,
       content: {
         fields: {
@@ -197,16 +208,13 @@ export class Governance {
           max_voting_time,
         },
       },
-    } = (
-      await sdk.sui.getObject({
-        id,
-        options: {
-          showContent: true,
-        },
-      })
-    ).data as GovernanceData;
-
+    },
+  }: {
+    sdk: DominionSDK;
+    data: GovernanceData;
+  }) {
     return new Governance(
+      sdk,
       objectId,
       dominion_id,
       name,
@@ -215,5 +223,51 @@ export class Governance {
       BigInt(vote_threshold),
       BigInt(max_voting_time)
     );
+  }
+
+  static async fetch({sdk, id}: {id: string; sdk: DominionSDK}) {
+    const object = await sdk.sui.getObject({
+      id,
+      options: {
+        showContent: true,
+      },
+    });
+
+    return Governance.fromData({sdk, data: object.data as GovernanceData});
+  }
+
+  public static async multiFetch({
+    sdk,
+    ids,
+  }: {
+    sdk: DominionSDK;
+    ids: string[];
+  }) {
+    const objects = await sdk.sui.multiGetObjects({
+      ids,
+      options: {
+        showContent: true,
+      },
+    });
+    return objects.map(object =>
+      Governance.fromData({sdk, data: object.data as GovernanceData})
+    );
+  }
+
+  public static withEnableAdminCommander({
+    sdk,
+    dominion,
+    adminCap,
+    txb,
+  }: {
+    sdk: DominionSDK;
+    dominion: TransactionObjectInput;
+    adminCap: TransactionObjectInput;
+    txb: TransactionBlock;
+  }) {
+    txb.moveCall({
+      target: `${sdk.config.governance.contract}::governance_admin_commander::enable`,
+      arguments: [txb.object(dominion), txb.object(adminCap)],
+    });
   }
 }

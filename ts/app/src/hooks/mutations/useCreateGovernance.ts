@@ -12,7 +12,7 @@ import {
 } from "@mysten/dapp-kit";
 import useDominionSdk from "../useDominionSdk";
 import useConfig from "../useConfig";
-import { Config } from "../../queryOptions/config";
+import { Config } from "../../queryOptions/configQO";
 
 function createTxb({
   config,

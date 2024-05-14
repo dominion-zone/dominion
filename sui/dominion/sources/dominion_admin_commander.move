@@ -1,5 +1,5 @@
 module dominion::dominion_admin_commander {
-    use dominion::commander_cap::{Self, CommanderCap};
+    use std::type_name::{Self, TypeName};
     use dominion::command::Command;
     use dominion::executor::Executor;
     use dominion::dominion::{Self, Dominion, DominionAdminCap};
@@ -14,19 +14,14 @@ module dominion::dominion_admin_commander {
 
 
     const TAdminCapRecepient: u8 = 32;
-    const TCommanderCapId: u8 = 33;
+    const TCommander: u8 = 33;
     const TOwnerCapRecepient: u8 = 34;
 
     const EInvalidCommandKind: u64 = 0;
     const EInvalidTargetDominion: u64 = 2;
     const EDisablingSelf: u64 = 3;
 
-    public struct DOMINION_ADMIN_COMMANDER has drop()
-
-    public struct DominionAdminControl has key {
-        id: UID,
-        commander_cap: CommanderCap<DOMINION_ADMIN_COMMANDER>,
-    }
+    public struct DominionAdminCommander has drop()
 
     public struct AdminCommand has key, store {
         id: UID,
@@ -34,25 +29,11 @@ module dominion::dominion_admin_commander {
         target_dominion_id: ID,
     }
 
-    #[allow(lint(freeze_wrapped))]
-    fun init(
-        w: DOMINION_ADMIN_COMMANDER,
-        ctx: &mut TxContext,
-    ) {
-        let commander_cap = commander_cap::new(w, ctx);
-        transfer::freeze_object(DominionAdminControl {
-            id: object::new(ctx),
-            commander_cap
-        });
-    }
-
     public entry fun enable(
         dominion: &mut Dominion,
         admin_cap: &DominionAdminCap,
-        admin_control: &DominionAdminControl,
     ) {
-        dominion.enable_commander(
-            object::id(&admin_control.commander_cap),
+        dominion.enable_commander<DominionAdminCommander>(
             admin_cap,
         );
     }
@@ -60,10 +41,8 @@ module dominion::dominion_admin_commander {
     public entry fun disable(
         dominion: &mut Dominion,
         admin_cap: &DominionAdminCap,
-        admin_control: &DominionAdminControl,
     ) {
-        dominion.disable_commander(
-            object::id(&admin_control.commander_cap),
+        dominion.disable_commander<DominionAdminCommander>(
             admin_cap,
         );
     }
@@ -72,7 +51,6 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         admin_cap_recipient: address,
-        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -85,9 +63,9 @@ module dominion::dominion_admin_commander {
             TAdminCapRecepient,
             admin_cap_recipient
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
+            DominionAdminCommander(),
             payload,
-            &admin_control.commander_cap,
             ctx
         )
     }
@@ -95,8 +73,7 @@ module dominion::dominion_admin_commander {
     public fun new_enable_commander_command(
         dominion: &Dominion,
         target_dominion: &Dominion,
-        commander_cap_id: ID,
-        admin_control: &DominionAdminControl,
+        commander: TypeName,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -106,26 +83,25 @@ module dominion::dominion_admin_commander {
         };
         dynamic_field::add(
             &mut payload.id,
-            TCommanderCapId,
-            commander_cap_id
+            TCommander,
+            commander,
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
+            DominionAdminCommander(),
             payload,
-            &admin_control.commander_cap,
-            ctx
+            ctx,
         )
     }
 
     public fun new_disable_commander_command(
         dominion: &Dominion,
         target_dominion: &Dominion,
-        commander_cap_id: ID,
-        admin_control: &DominionAdminControl,
+        commander: TypeName,
         ctx: &mut TxContext,
     ): Command {
         assert!(
             object::id(dominion) != object::id(target_dominion) ||
-            commander_cap_id != object::id(&admin_control.commander_cap),
+            commander != type_name::get<DominionAdminCommander>(),
             EDisablingSelf
         );
         let mut payload = AdminCommand {
@@ -135,20 +111,19 @@ module dominion::dominion_admin_commander {
         };
         dynamic_field::add(
             &mut payload.id,
-            TCommanderCapId,
-            commander_cap_id
+            TCommander,
+            commander,
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
+            DominionAdminCommander(),
             payload,
-            &admin_control.commander_cap,
-            ctx
+            ctx,
         )
     }
 
     public fun new_disable_self_command(
         dominion: &Dominion,
         admin_cap_recepient: address,
-        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -158,18 +133,18 @@ module dominion::dominion_admin_commander {
         };
         dynamic_field::add(
             &mut payload.id,
-            TCommanderCapId,
-            object::id(&admin_control.commander_cap),
+            TCommander,
+            type_name::get<DominionAdminCommander>(),
         );
         dynamic_field::add(
             &mut payload.id,
             TAdminCapRecepient,
             admin_cap_recepient,
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
+            DominionAdminCommander(),
             payload,
-            &admin_control.commander_cap,
-            ctx
+            ctx,
         )
     }
 
@@ -177,7 +152,6 @@ module dominion::dominion_admin_commander {
         dominion: &Dominion,
         target_dominion: &Dominion,
         recepient: address,
-        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -190,10 +164,10 @@ module dominion::dominion_admin_commander {
             TOwnerCapRecepient,
             recepient
         );
-        dominion.new_command_from_object(
+        dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
+            DominionAdminCommander(),
             payload,
-            &admin_control.commander_cap,
-            ctx
+            ctx,
         )
     }
 
@@ -206,7 +180,7 @@ module dominion::dominion_admin_commander {
             kind
         } = self;
         if (kind == KEnableCommander || kind == KDisableCommander) {
-            dynamic_field::remove<u8, ID>(&mut id, TCommanderCapId);
+            dynamic_field::remove<u8, ID>(&mut id, TCommander);
         };
         id.delete()
     }
@@ -216,7 +190,6 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -227,7 +200,7 @@ module dominion::dominion_admin_commander {
         let recepient = dynamic_field::borrow<u8, address>(&command.id, TAdminCapRecepient);
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
         assert!(
@@ -241,7 +214,7 @@ module dominion::dominion_admin_commander {
         );
 
         executor.commit(
-            &admin_control.commander_cap
+            DominionAdminCommander()
         )
     }
 
@@ -250,7 +223,6 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -262,22 +234,22 @@ module dominion::dominion_admin_commander {
             EInvalidTargetDominion,
         );
 
-        let commander_cap_id = dynamic_field::borrow<u8, ID>(&command.id, TCommanderCapId);
+        let commander = dynamic_field::borrow<u8, TypeName>(&command.id, TCommander);
 
-        if (target_dominion.has_commander_cap_id(*commander_cap_id)) {
+        if (target_dominion.has_commander(*commander)) {
             return executor.report_error(
-                    string::utf8(b"Commander is already enabled"),
-                    &admin_control.commander_cap
+                string::utf8(b"Commander is already enabled"),
+                DominionAdminCommander(),
             )
         };
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
 
-        target_dominion.enable_commander(
-            *commander_cap_id,
+        target_dominion.enable_commander_by_name(
+            *commander,
             &admin_cap,
         );
 
@@ -287,7 +259,7 @@ module dominion::dominion_admin_commander {
         );
 
         executor.commit(
-            &admin_control.commander_cap
+            DominionAdminCommander()
         )
     }
 
@@ -295,7 +267,6 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -307,22 +278,22 @@ module dominion::dominion_admin_commander {
             EInvalidTargetDominion,
         );
 
-        let commander_cap_id = dynamic_field::borrow<u8, ID>(&command.id, TCommanderCapId);
+        let commander = dynamic_field::borrow<u8, TypeName>(&command.id, TCommander);
 
-        if (dominion.has_commander_cap_id(*commander_cap_id)) {
+        if (dominion.has_commander(*commander)) {
             return executor.report_error(
-                    string::utf8(b"Commander is already enabled"),
-                    &admin_control.commander_cap
+                string::utf8(b"Commander is already enabled"),
+                DominionAdminCommander()
             )
         };
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
 
-        dominion.enable_commander(
-            *commander_cap_id,
+        dominion.enable_commander_by_name(
+            *commander,
             &admin_cap,
         );
 
@@ -332,7 +303,7 @@ module dominion::dominion_admin_commander {
         );
 
         executor.commit(
-            &admin_control.commander_cap
+            DominionAdminCommander()
         )
     }
 
@@ -341,7 +312,6 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -353,22 +323,22 @@ module dominion::dominion_admin_commander {
             EInvalidTargetDominion,
         );
 
-        let commander_cap_id = dynamic_field::borrow<u8, ID>(&command.id, TCommanderCapId);
+        let commander = dynamic_field::borrow<u8, TypeName>(&command.id, TCommander);
 
-        if (!target_dominion.has_commander_cap_id(*commander_cap_id)) {
+        if (!target_dominion.has_commander(*commander)) {
             return executor.report_error(
                 string::utf8(b"Commander is not enabled"),
-                &admin_control.commander_cap
+                DominionAdminCommander()
             )
         };
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
 
-        target_dominion.disable_commander(
-            *commander_cap_id,
+        target_dominion.disable_commander_by_name(
+            *commander,
             &admin_cap,
         );
 
@@ -378,7 +348,7 @@ module dominion::dominion_admin_commander {
         );
 
         executor.commit(
-            &admin_control.commander_cap
+            DominionAdminCommander()
         )
     }
 
@@ -386,7 +356,6 @@ module dominion::dominion_admin_commander {
         executor: Executor,
         dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
         assert!(
@@ -398,26 +367,26 @@ module dominion::dominion_admin_commander {
             EInvalidTargetDominion,
         );
 
-        let commander_cap_id = dynamic_field::borrow<u8, ID>(&command.id, TCommanderCapId);
+        let commander = dynamic_field::borrow<u8, TypeName>(&command.id, TCommander);
 
-        if (!dominion.has_commander_cap_id(*commander_cap_id)) {
-            return executor.report_error(
+        if (!dominion.has_commander(*commander)) {
+            return executor.report_error<DominionAdminCommander>(
                 string::utf8(b"Commander is not enabled"),
-                &admin_control.commander_cap
+                DominionAdminCommander()
             )
         };
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
 
-        dominion.disable_commander(
-            *commander_cap_id,
+        dominion.disable_commander_by_name(
+            *commander,
             &admin_cap,
         );
 
-        if (commander_cap_id == object::id(&admin_control.commander_cap)) {
+        if (commander == type_name::get<DominionAdminCommander>()) {
             let admin_cap_recepient = dynamic_field::borrow<u8, address>(&command.id, TAdminCapRecepient);
             transfer::public_transfer(
                 admin_cap,
@@ -430,8 +399,8 @@ module dominion::dominion_admin_commander {
             );
         };
 
-        executor.commit(
-            &admin_control.commander_cap
+        executor.commit<DominionAdminCommander>(
+            DominionAdminCommander()
         )
     }
 
@@ -440,7 +409,6 @@ module dominion::dominion_admin_commander {
         dominion: &mut Dominion,
         target_dominion: &mut Dominion,
         receiving_admin_cap: Receiving<DominionAdminCap>,
-        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ): Command {
         let command = executor.payload_object<AdminCommand>();
@@ -456,7 +424,7 @@ module dominion::dominion_admin_commander {
          let recepient = dynamic_field::borrow<u8, address>(&command.id, TOwnerCapRecepient);
 
         let admin_cap = transfer::public_receive(
-            dominion.mut_id(&executor, &admin_control.commander_cap),
+            dominion.mut_id<DominionAdminCommander>(DominionAdminCommander()),
             receiving_admin_cap
         );
 
@@ -474,19 +442,18 @@ module dominion::dominion_admin_commander {
             object::id_address(dominion),
         );
 
-        executor.commit(
-            &admin_control.commander_cap
+        executor.commit<DominionAdminCommander>(
+            DominionAdminCommander()
         )
     }
 
     entry fun create_self_controlled_dominion(
-        admin_control: &DominionAdminControl,
         ctx: &mut TxContext,
     ) {
         let (mut dominion, admin_cap, owner_cap) = dominion::new(
             ctx,
         );
-        enable(&mut dominion, &admin_cap, admin_control);
+        enable(&mut dominion, &admin_cap);
         transfer::public_transfer(
             admin_cap,
             object::id_address(&dominion),
@@ -501,60 +468,41 @@ module dominion::dominion_admin_commander {
     }
 
     #[test_only] use sui::test_scenario::{Self, Scenario};
-
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext) {
-        init(DOMINION_ADMIN_COMMANDER(), ctx)
-    }
+    #[test_only] use dominion::dominion::DominionOwnerCap;
 
     #[test_only]
     public fun self_controlled_dominion_for_testing(
-        scenario: &mut Scenario
-    ): (Dominion, DominionOwnerCap, DominionAdminControl) {
-        let nobody = @0x0;
-        init_for_testing(scenario.ctx());
-
-        scenario.next_tx(nobody);
-        let admin_control = scenario.take_immutable<DominionAdminControl>();
-
-        let (dominion, owner_cap) = new_self_controlled_dominion(
-            &admin_control,
-            scenario.ctx()
+        scenario: &mut Scenario,
+        next_sender: address,
+    ): (Dominion, DominionOwnerCap) {
+        let (mut dominion, admin_cap, owner_cap) = dominion::new(
+            scenario.ctx(),
+        );
+        enable(&mut dominion, &admin_cap);
+        transfer::public_transfer(
+            admin_cap,
+            object::id_address(&dominion),
         );
         dominion::commit(dominion);
 
-        scenario.next_tx(nobody);
+        scenario.next_tx(next_sender);
         let dominion = scenario.take_shared<Dominion>();
 
-        (dominion, owner_cap, admin_control)
+        (dominion, owner_cap)
     }
 
     #[test]
-    fun initialize() {
+    fun self_controlled_dominion_creation() {
         let nobody = @0x0;
         let mut scenario = test_scenario::begin(nobody);
-        init_for_testing(scenario.ctx());
-
-        let effects = scenario.next_tx(nobody);
-        assert!(effects.frozen().length() == 1, 0);
-        let admin_control = scenario.take_immutable<DominionAdminControl>();
-        
-        test_scenario::return_immutable(admin_control);
-        scenario.end();
-    }
-
-    #[test]
-    fun create_self_controlled_dominion() {
-        let nobody = @0x0;
-        let mut scenario = test_scenario::begin(nobody);
-        init_for_testing(scenario.ctx());
-
-        scenario.next_tx(nobody);
-        let admin_control = scenario.take_immutable<DominionAdminControl>();
-
-        let (dominion, owner_cap) = new_self_controlled_dominion(
-            &admin_control,
-            scenario.ctx()
+    
+        let (mut dominion, admin_cap, owner_cap) = dominion::new(
+            scenario.ctx(),
+        );
+        enable(&mut dominion, &admin_cap);
+        transfer::public_transfer(
+            admin_cap,
+            object::id_address(&dominion),
         );
         dominion::commit(dominion);
 
@@ -569,7 +517,7 @@ module dominion::dominion_admin_commander {
             1
         );
         assert!(
-            dominion.has_commander_cap_id(object::id(&admin_control.commander_cap)),
+            dominion.check_commander<DominionAdminCommander>(),
             2
         );
         let admin_cap = scenario.take_from_address_by_id<DominionAdminCap>(
@@ -585,7 +533,6 @@ module dominion::dominion_admin_commander {
         transfer::public_freeze_object(owner_cap);
 
         test_scenario::return_shared(dominion);
-        test_scenario::return_immutable(admin_control);
 
         scenario.end();
     }
@@ -595,13 +542,15 @@ module dominion::dominion_admin_commander {
         let nobody = @0x0;
         let receiver = @0x2874;
         let mut scenario = test_scenario::begin(nobody);
-        let (mut dominion, owner_cap, admin_control) = self_controlled_dominion_for_testing(&mut scenario);
+        let (mut dominion, owner_cap) = self_controlled_dominion_for_testing(
+            &mut scenario,
+            nobody,
+        );
         
         let command = new_transfer_admin_cap_command(
             &dominion,
             &dominion,
             receiver,
-            &admin_control,
             scenario.ctx(),
         );
         scenario.next_tx(nobody);
@@ -610,7 +559,7 @@ module dominion::dominion_admin_commander {
             0
         );
         assert!(
-            command.commander_cap_id() == object::id(&admin_control.commander_cap),
+            command.check_commander<DominionAdminCommander>(),
             1
         );
         assert!(
@@ -644,7 +593,6 @@ module dominion::dominion_admin_commander {
                 executor,
                 &mut dominion,
                 test_scenario::receiving_ticket_by_id<DominionAdminCap>(admin_cap_id),
-                &admin_control,
             )
         };
         scenario.next_tx(nobody);
@@ -661,7 +609,6 @@ module dominion::dominion_admin_commander {
         transfer::public_freeze_object(owner_cap);
 
         test_scenario::return_shared(dominion);
-        test_scenario::return_immutable(admin_control);
 
         scenario.end();
     }

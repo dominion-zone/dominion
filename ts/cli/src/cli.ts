@@ -12,6 +12,8 @@ import {installCreateDominion} from './createDominion';
 import {installCreateGovernance} from './createGovernance';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import {installDeployTestCoinCLI} from './deployTestCoin';
+import {installCreatePublicRegistry} from './createPublicRegistry';
 dotenv.config();
 
 export const cli = () => {
@@ -23,7 +25,7 @@ export const cli = () => {
     .hook('preAction', async () => {
       const couchdb = axios.create({
         baseURL: process.env.VITE_COUCHDB_URL as string,
-        timeout: 1000,
+        timeout: 10000,
       });
       const appConfig = (
         await couchdb.get(process.env.VITE_CONFIG_PATH as string)
@@ -65,8 +67,10 @@ export const cli = () => {
     });
 
   installDeployCLI(program);
+  installDeployTestCoinCLI(program);
   installCreateDominion(program);
   installCreateGovernance(program);
+  installCreatePublicRegistry(program);
 
   return program;
 };

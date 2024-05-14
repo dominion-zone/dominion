@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { configQO } from "../queryOptions/config";
+import { configQO } from "../queryOptions/configQO";
 import { useSuiClientContext } from "@mysten/dapp-kit";
 import { Network } from "../config/network";
 
