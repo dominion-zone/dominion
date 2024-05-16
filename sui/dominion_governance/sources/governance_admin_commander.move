@@ -1,6 +1,6 @@
 module dominion_governance::governance_admin_commander {
     use sui::dynamic_field;
-    use std::string::{Self, String};
+    use std::string::String;
     use std::ascii::String as AsciiString;
     use sui::url::{Self, Url};
     use sui::transfer::Receiving;

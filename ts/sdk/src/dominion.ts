@@ -137,7 +137,7 @@ export class Dominion {
       admin_address,
       owner_cap_id,
       owner_address,
-      commanders.map(({fields: {name}}) => name)
+      commanders.map(({fields: {name}}) => '0x' + name)
     );
   }
 
@@ -168,5 +168,9 @@ export class Dominion {
     return objects.map(object =>
       Dominion.fromData({sdk, data: object.data as DominionData})
     );
+  }
+
+  public hasCommander(name: string): boolean {
+    return !!this.commanders.find(v => v === name);
   }
 }

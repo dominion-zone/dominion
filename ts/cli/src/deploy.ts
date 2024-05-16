@@ -9,19 +9,21 @@ export const installDeployCLI = (program: Command) => {
 
 const deployAction = async () => {
   const {couchdb, appConfig, env} = getContext();
-  if (!appConfig[env]) {
-    appConfig[env] = {
-      dominion: {
-        contract: '',
-      },
-      governance: {
-        contract: '',
-      },
-      registry: {
-        contract: '',
-      },
-    };
-  }
+  appConfig[env] = {
+    ...appConfig[env],
+    dominion: {
+      contract: '',
+    },
+    governance: {
+      contract: '',
+    },
+    registry: {
+      contract: '',
+    },
+    frameworkCommander: {
+      contract: '',
+    },
+  };
 
   {
     let moveToml = await readFile('../../sui/dominion/Move.toml', 'utf8');
@@ -32,7 +34,7 @@ const deployAction = async () => {
   {
     console.log('Deploying dominion contract');
     const [out] = await exec(
-      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion',
+      'sui client publish --gas-budget 3000000000 --json ../../sui/dominion',
       {
         encoding: 'utf8',
       }
@@ -67,7 +69,7 @@ const deployAction = async () => {
   {
     console.log('Deploying governance contract');
     const [out] = await exec(
-      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion_governance',
+      'sui client publish --gas-budget 3000000000 --json ../../sui/dominion_governance',
       {
         encoding: 'utf8',
       }
@@ -77,9 +79,7 @@ const deployAction = async () => {
     const p = logs.objectChanges.find(
       ({type}: {type: string}) => type === 'published'
     );
-    appConfig[env].governance = {
-      contract: p.packageId,
-    };
+    appConfig[env].governance.contract = p.packageId;
     console.log('Governance contract: ', appConfig[env].governance.contract);
 
     /*
@@ -112,7 +112,7 @@ const deployAction = async () => {
   {
     console.log('Deploying registry contract');
     const [out] = await exec(
-      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/dominion_registry',
+      'sui client publish --gas-budget 3000000000 --json ../../sui/dominion_registry',
       {
         encoding: 'utf8',
       }
@@ -122,9 +122,7 @@ const deployAction = async () => {
     const p = logs.objectChanges.find(
       ({type}: {type: string}) => type === 'published'
     );
-    appConfig[env].registry = {
-      contract: p.packageId,
-    };
+    appConfig[env].registry.contract = p.packageId;
     console.log('Registry contract: ', appConfig[env].registry.contract);
 
     let moveToml = await readFile(
@@ -136,6 +134,40 @@ const deployAction = async () => {
       `published-at = "${appConfig[env].registry.contract}"`
     );
     await writeFile('../../sui/dominion_registry/Move.toml', moveToml, 'utf8');
+  }
+
+  {
+    console.log('Deploying framework commander contract');
+    const [out] = await exec(
+      'sui client publish --gas-budget 3000000000 --json ../../sui/framework_commander',
+      {
+        encoding: 'utf8',
+      }
+    );
+
+    const logs = JSON.parse(out);
+    const p = logs.objectChanges.find(
+      ({type}: {type: string}) => type === 'published'
+    );
+    appConfig[env].frameworkCommander.contract = p.packageId;
+    console.log(
+      'Framework commander contract: ',
+      appConfig[env].frameworkCommander.contract
+    );
+
+    let moveToml = await readFile(
+      '../../sui/framework_commander/Move.toml',
+      'utf8'
+    );
+    moveToml = moveToml.replace(
+      /published-at = ".*"/,
+      `published-at = "${appConfig[env].frameworkCommander.contract}"`
+    );
+    await writeFile(
+      '../../sui/framework_commander/Move.toml',
+      moveToml,
+      'utf8'
+    );
   }
 
   await couchdb.put(process.env.VITE_CONFIG_PATH as string, appConfig, {

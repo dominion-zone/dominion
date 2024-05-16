@@ -13,6 +13,9 @@ export type Config = {
     contract: string;
     main: string;
   };
+  frameworkCommander: {
+    contract: string;
+  };
   testCoin?: {
     contract: string;
     control: string;

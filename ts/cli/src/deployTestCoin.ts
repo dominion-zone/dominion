@@ -12,17 +12,16 @@ const deployTestCoinAction = async () => {
   if (!appConfig[env]) {
     throw new Error(`Deploy main contracts to the ${env} first`);
   }
-  if (!appConfig[env].testCoin) {
-    appConfig[env].testCoin = {
-      contract: '',
-      control: '',
-    };
-  }
+
+  appConfig[env].testCoin = {
+    contract: '',
+    control: '',
+  };
 
   {
     console.log('Deploying test coin contract');
     const [out] = await exec(
-      '/home/aankor/src/sui/target/release/sui client publish --gas-budget 3000000000 --json ../../sui/test_coin',
+      'sui client publish --gas-budget 3000000000 --json ../../sui/test_coin',
       {
         encoding: 'utf8',
       }
@@ -31,17 +30,13 @@ const deployTestCoinAction = async () => {
     const p = logs.objectChanges.find(
       ({type}: {type: string}) => type === 'published'
     );
+    appConfig[env].testCoin!.contract = p.packageId;
 
-    const control = logs.objectChanges.find(
+    appConfig[env].testCoin!.control = logs.objectChanges.find(
       ({objectType}: {objectType: string}) =>
         objectType ===
         `${appConfig[env].testCoin!.contract}::test_coin::Control`
     ).objectId;
-
-    appConfig[env].testCoin = {
-      contract: p.packageId,
-      control,
-    };
 
     console.log(
       `Test coin contract: ${appConfig[env].testCoin!.contract} control: ${

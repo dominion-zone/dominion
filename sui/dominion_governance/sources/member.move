@@ -5,6 +5,7 @@ module dominion_governance::member {
     use sui::coin::{Self, Coin};
     use sui::clock::Clock;
     use sui::math;
+    use dominion::command::Command;
     use dominion_governance::governance::Governance;
     use dominion_governance::proposal::{Self, Proposal, ProposalOwnerCap};
 
@@ -12,6 +13,7 @@ module dominion_governance::member {
     const ENotEnoughVotingWeight: u64 = 1;
     const EProposalOwnerCapNotFound: u64 = 2;
     const ENotEnoughFunds: u64 = 3;
+    const EWrongMember: u64 = 4;
 
     public struct Vote has store {
         proposal_id: ID,
@@ -26,6 +28,12 @@ module dominion_governance::member {
         balance: Balance<T>,
         votes: vector<Vote>,
         proposal_owner_caps: vector<ProposalOwnerCap>,
+    }
+
+    public struct ProposalBuilder<phantom T> {
+        member_id: ID,
+        proposal: Proposal<T>,
+        owner_cap: ProposalOwnerCap,
     }
 
     public fun new<T>(
@@ -99,7 +107,7 @@ module dominion_governance::member {
         link: Url,
         clock: &Clock,
         ctx: &mut TxContext,
-    ): Proposal<T> {
+    ): ProposalBuilder<T> {
         assert!(object::id(governance) == self.governance_id, EInvalidGovernance);
         assert!(
             self.voting_weight() >= governance.min_weight_to_create_proposal(),
@@ -114,9 +122,135 @@ module dominion_governance::member {
         );
 
         // governance.register_proposal(object::id(&proposal));
-        self.proposal_owner_caps.push_back(owner_cap);
+        // self.proposal_owner_caps.push_back(owner_cap);
 
-        proposal
+        ProposalBuilder<T> {
+            member_id: object::id(self),
+            proposal,
+            owner_cap
+        }
+    }
+
+    public fun proposal<T>(self: &ProposalBuilder<T>): &Proposal<T> {
+        &self.proposal
+    }
+
+    public fun proposal_mut<T>(self: &mut ProposalBuilder<T>): &mut Proposal<T> {
+        &mut self.proposal
+    }
+
+    public fun owner_cap<T>(self: &ProposalBuilder<T>): &ProposalOwnerCap {
+        &self.owner_cap
+    }
+
+    public fun set_name<T>(
+        self: &mut ProposalBuilder<T>,
+        name: String,
+        clock: &Clock,
+    ) {
+        self.proposal.set_name(
+            name,
+            clock,
+            &self.owner_cap
+        )
+    }
+
+    public fun set_link<T>(
+        self: &mut ProposalBuilder<T>,
+        link: Url,
+        clock: &Clock,
+    ) {
+        self.proposal.set_link(
+            link,
+            clock,
+            &self.owner_cap,
+        )
+    }
+
+    public fun add_option<T>(
+        self: &mut ProposalBuilder<T>,
+        label: String,
+        commands: vector<Command>,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        self.proposal.add_option(
+            label,
+            commands,
+            clock,
+            &self.owner_cap,
+            ctx,
+        )
+    }
+
+    public fun insert_option<T>(
+        self: &mut ProposalBuilder<T>,
+        label: String,
+        commands: vector<Command>,
+        index: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        self.proposal.insert_option(
+            label,
+            commands,
+            index,
+            clock,
+            &self.owner_cap,
+            ctx,
+        )
+    }
+
+    public fun remove_option<T>(
+        self: &mut ProposalBuilder<T>,
+        index: u64,
+        clock: &Clock,
+    ): vector<Command> {
+        self.proposal.remove_option(
+            index,
+            clock,
+            &self.owner_cap,
+        )
+    }
+
+    public fun replace_option_commands<T>(
+        self: &mut ProposalBuilder<T>,
+        index: u64,
+        commands: vector<Command>,
+        clock: &Clock,
+    ): vector<Command> {
+        self.proposal.replace_option_commands(
+            index,
+            commands,
+            clock,
+            &self.owner_cap
+        )
+    }
+
+    public fun start<T>(
+        self: &mut ProposalBuilder<T>,
+        clock: &Clock,
+        delay: u64,
+    ) {
+        self.proposal.start(
+            clock,
+            delay,
+            &self.owner_cap,
+        )
+    }
+
+    public fun commit<T>(
+        self: ProposalBuilder<T>,
+        member: &mut Member<T>
+    ) {
+        let ProposalBuilder {
+            member_id,
+            proposal,
+            owner_cap,
+        } = self;
+        assert!(object::id(member) == member_id, EWrongMember);
+        proposal.commit();
+        member.proposal_owner_caps.push_back(owner_cap);
     }
 
     public fun proposal_owner_cap<T>(
@@ -142,12 +276,27 @@ module dominion_governance::member {
         &self.proposal_owner_caps[index]
     }
 
+    public entry fun start_proposal<T>(
+        self: &Member<T>,
+        proposal: &mut Proposal<T>,
+        clock: &Clock,
+        delay: u64,
+    ) {
+        let owner_cap = self.proposal_owner_cap(object::id(proposal));
+        proposal.start(
+            clock,
+            delay,
+            owner_cap,
+        );
+    }
+
     public fun cast_vote<T>(
         self: &mut Member<T>,
         proposal: &mut Proposal<T>,
         option_index: Option<u64>,
         is_abstain: bool,
         reliquish: bool,
+        clock: &Clock,
     ) {
         assert!(
             proposal.governance_id() == self.governance_id,
@@ -176,7 +325,8 @@ module dominion_governance::member {
             proposal.reliquish_vote(
                 option_index,
                 is_abstain,
-                weight
+                weight,
+                clock
             );
         };
         
@@ -194,6 +344,7 @@ module dominion_governance::member {
                 option_index,
                 is_abstain,
                 weight,
+                clock,
             );
         };
     }

@@ -45,6 +45,7 @@ export class Governance {
   public constructor(
     public readonly sdk: DominionSDK,
     public readonly id: string,
+    public readonly coinType: string,
     public dominionId: string,
     public name: string,
     public link: string,
@@ -197,6 +198,7 @@ export class Governance {
     data: {
       objectId,
       content: {
+        type,
         fields: {
           dominion_owner_cap: {
             fields: {dominion_id},
@@ -216,6 +218,7 @@ export class Governance {
     return new Governance(
       sdk,
       objectId,
+      type.match(/.+::governance::Governance<(.+)>/)![1],
       dominion_id,
       name,
       link,

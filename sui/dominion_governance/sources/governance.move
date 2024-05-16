@@ -1,11 +1,14 @@
 module dominion_governance::governance {
     use dominion::dominion::{Dominion, DominionOwnerCap};
+    use dominion::executor::Executor;
+    use dominion::command::Command;
     use std::string::String;
     use sui::url::Url;
     use sui::bag::{Self, Bag};
 
     const EInvalidAdminCap: u64 = 0;
     const EInvalidVetoCap: u64 = 1;
+    const EWrongDominion: u64 = 2;
     // const EProposalNotFound: u64 = 1;
 
     public struct GovernanceAdminCap has key, store {
@@ -34,6 +37,7 @@ module dominion_governance::governance {
         cool_off_time: u64,
         hold_up_time: u64,
         extra_weight_lock_time: u64,
+        proposal_ids: vector<ID>,
     }
 
     public fun new<T>(
@@ -72,6 +76,7 @@ module dominion_governance::governance {
             cool_off_time: 0,
             hold_up_time: 0,
             extra_weight_lock_time: 0,
+            proposal_ids: vector::empty(),
         };
 
         let admin_cap = GovernanceAdminCap {
@@ -92,23 +97,28 @@ module dominion_governance::governance {
         transfer::share_object(self);
     }
 
-    /*
+    public(package) fun approve<T>(
+        self: &Governance<T>,
+        dominion: &Dominion,
+        command: Command,
+    ): Executor {
+        assert!(object::id(dominion) == self.dominion_id(), EWrongDominion);
+        dominion.approve(
+            command,
+            &self.dominion_owner_cap
+        )
+    }
+
     public(package) fun register_proposal<T>(
         self: &mut Governance<T>,
         proposal_id: ID
     ) {
-        self.active_proposal_ids.push_back(proposal_id);
+        self.proposal_ids.push_back(proposal_id);
     }
 
-    public(package) fun on_proposal_executed<T>(
-        self: &mut Governance<T>,
-        proposal_id: ID
-    ) {
-        let (found, i) = self.active_proposal_ids.index_of(&proposal_id);
-        assert!(found, EProposalNotFound);
-        self.active_proposal_ids.swap_remove(i);
+    public fun dominion_id<T>(self: &Governance<T>): ID {
+        self.dominion_owner_cap.dominion_id()
     }
-    */
 
     public fun admin_cap_id<T>(self: &Governance<T>): ID {
         self.admin_cap_id

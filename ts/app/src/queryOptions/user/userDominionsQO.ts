@@ -6,9 +6,9 @@ import {
   Dominion,
   DominionSDK,
   Governance,
-  Member,
 } from "@dominion.zone/dominion-sdk";
 import { registryQO } from "../registryQO";
+import userMembersQO from "./userMembersQO";
 
 function userDominionsQO({
   network,
@@ -28,7 +28,9 @@ function userDominionsQO({
       ];
       const sdk = new DominionSDK(sui, config);
 
-      const members = await Member.all({ sdk, owner: wallet });
+      const members = await queryClient.fetchQuery(
+        userMembersQO({ network: network as Network, wallet, queryClient })
+      );
       const governances = await Governance.multiFetch({
         sdk,
         ids: members.map(({ governanceId }) => governanceId),
@@ -42,8 +44,8 @@ function userDominionsQO({
       const registry = await queryClient.fetchQuery(
         registryQO({ network: network as Network, queryClient })
       );
-      const urlNames = dominions.map(d => registry.findUrlName(d.id) || null);
-  
+      const urlNames = dominions.map((d) => registry.findUrlName(d.id) || null);
+
       dominions.forEach((dominion, i) =>
         queryClient.setQueryData<{
           dominion: Dominion;

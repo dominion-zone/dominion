@@ -45,12 +45,11 @@ function CreateGovernance() {
       voteThreshold: string;
       maxVotingTime: string;
     }) => {
-      console.log(params);
       createGovernance.mutate({
         ...params,
         minWeightToCreateProposal: BigInt(params.minWeightToCreateProposal),
         voteThreshold: BigInt(params.voteThreshold),
-        maxVotingTime: 60n * BigInt(params.maxVotingTime),
+        maxVotingTime: 60000n * BigInt(params.maxVotingTime),
       });
     },
     [createGovernance]
@@ -97,6 +96,7 @@ function CreateGovernance() {
                 label="Url name"
                 value={values.urlName}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
             </div>
             <div>
@@ -105,6 +105,7 @@ function CreateGovernance() {
                 label="Link"
                 value={values.link}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
             </div>
             <div>
@@ -114,6 +115,7 @@ function CreateGovernance() {
                 label="Min weight to create proposal"
                 value={values.minWeightToCreateProposal}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
             </div>
             <div>
@@ -123,6 +125,7 @@ function CreateGovernance() {
                 label="Vote threshold"
                 value={values.voteThreshold}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
             </div>
             <div>
@@ -132,14 +135,17 @@ function CreateGovernance() {
                 label="Max voting time minutes"
                 value={values.maxVotingTime}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
             </div>
-            <Button
-              type="submit"
-              disabled={!currentAccount || createGovernance.isPending}
-            >
-              Create
-            </Button>
+            <div>
+              <Button
+                type="submit"
+                disabled={!currentAccount || createGovernance.isPending}
+              >
+                Create
+              </Button>
+            </div>
           </Form>
         )}
       </Formik>
