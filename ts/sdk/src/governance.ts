@@ -37,6 +37,7 @@ type GovernanceData = {
       name: string;
       veto_cap_id: string;
       vote_threshold: string;
+      proposal_ids: string[];
     };
   };
 };
@@ -51,7 +52,8 @@ export class Governance {
     public link: string,
     public minWeightToCreateProposal: bigint,
     public voteThreshold: bigint,
-    public maxVotingTime: bigint
+    public maxVotingTime: bigint,
+    public proposalIds: string[]
   ) {}
 
   public static withNew({
@@ -208,6 +210,7 @@ export class Governance {
           min_weight_to_create_proposal,
           vote_threshold,
           max_voting_time,
+          proposal_ids,
         },
       },
     },
@@ -224,7 +227,8 @@ export class Governance {
       link,
       BigInt(min_weight_to_create_proposal),
       BigInt(vote_threshold),
-      BigInt(max_voting_time)
+      BigInt(max_voting_time),
+      proposal_ids
     );
   }
 

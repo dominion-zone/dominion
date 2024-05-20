@@ -1,9 +1,19 @@
+/* eslint-disable node/no-unsupported-features/es-builtins */
 import {
   TransactionBlock,
   TransactionObjectInput,
 } from '@mysten/sui.js/transactions';
 import {DominionSDK} from './sdk';
 import {SUI_CLOCK_OBJECT_ID} from '@mysten/sui.js/utils';
+
+type VoteData = {
+  fields: {
+    is_abstain: boolean;
+    option_index: null | string;
+    proposal_id: string;
+    weight: string;
+  };
+};
 
 type MemberData = {
   objectId: string;
@@ -20,10 +30,30 @@ type MemberData = {
       balance: string;
       governance_id: string;
       proposal_owner_caps: [];
-      votes: [];
+      votes: VoteData[];
     };
   };
 };
+
+export class Vote {
+  public constructor(
+    public readonly id: string,
+    public readonly isAbstain: boolean,
+    public readonly optionIndex: null | bigint,
+    public readonly proposalId: string,
+    public readonly weight: bigint
+  ) {}
+
+  public static fromData({fields}: VoteData): Vote {
+    return new Vote(
+      fields.proposal_id,
+      fields.is_abstain,
+      fields.option_index === null ? null : BigInt(fields.option_index),
+      fields.proposal_id,
+      BigInt(fields.weight)
+    );
+  }
+}
 
 export class Member {
   public constructor(
@@ -31,7 +61,7 @@ export class Member {
     public balance: string,
     public governanceId: string,
     public proposalOwnerCaps: [],
-    public votes: []
+    public votes: Vote[]
   ) {}
 
   public static withNew({
@@ -83,12 +113,13 @@ export class Member {
       },
     },
   }: MemberData): Member {
+    console.log(votes);
     return new Member(
       objectId,
       balance,
       governanceId,
       proposalOwnerCaps,
-      votes
+      votes.map(Vote.fromData)
     );
   }
 
@@ -220,6 +251,39 @@ export class Member {
     txb.moveCall({
       target: `${sdk.config.governance.contract}::member::commit`,
       arguments: [txb.object(proposalBuilder), txb.object(member)],
+      typeArguments: [coinType],
+    });
+  }
+
+  static withCastVote({
+    sdk,
+    member,
+    coinType,
+    proposal,
+    optionIndex,
+    isAbstain,
+    reliquish,
+    txb,
+  }: {
+    sdk: DominionSDK;
+    member: TransactionObjectInput;
+    coinType: string;
+    proposal: TransactionObjectInput;
+    optionIndex: bigint | null;
+    isAbstain: boolean;
+    reliquish: boolean;
+    txb: TransactionBlock;
+  }) {
+    txb.moveCall({
+      target: `${sdk.config.governance.contract}::member::cast_vote`,
+      arguments: [
+        txb.object(member),
+        txb.object(proposal),
+        txb.pure(optionIndex === null ? [] : [optionIndex.toString()]),
+        txb.pure(isAbstain),
+        txb.pure(reliquish),
+        txb.object(SUI_CLOCK_OBJECT_ID),
+      ],
       typeArguments: [coinType],
     });
   }

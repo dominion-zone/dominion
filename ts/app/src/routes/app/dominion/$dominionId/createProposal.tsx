@@ -5,6 +5,9 @@ import { z } from "zod";
 import { Formik, Form } from "formik";
 import { useCallback } from "react";
 import ProposalActionsEditor from "../../../../components/ProposalActionsEditor";
+import { Action } from "../../../../queryOptions/proposalQO";
+import useCreateProposal from "../../../../hooks/mutations/useCreateProposal";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 
 const action = z.union([
   z.object({
@@ -17,6 +20,7 @@ const action = z.union([
   }),
   z.object({
     type: z.literal("transferCoin"),
+    coinType: z.string(),
     recipient: z.string(),
     amount: z.string(),
   }),
@@ -32,9 +36,26 @@ export const Route = createFileRoute(
 });
 
 function CreateProposal() {
-  const { network, actions } = Route.useSearch();
+  const { network, actions, wallet } = Route.useSearch();
+  const { dominionId } = Route.useParams();
+  const currentAccount = useCurrentAccount();
 
-  const handleSubmit = useCallback(() => {}, []);
+  const mutation = useCreateProposal({ network, dominionId });
+
+  const handleSubmit = useCallback(
+    ({
+      name,
+      link,
+      actions,
+    }: {
+      name: string;
+      link: string;
+      actions: Action[];
+    }) => {
+      mutation.mutate({ name, link, actions, wallet: wallet! });
+    },
+    [mutation, wallet]
+  );
   return (
     <Container>
       <DominionHeader tab="createProposal" />
@@ -74,7 +95,12 @@ function CreateProposal() {
               />
             </div>
             <div>
-              <Button type="submit">Create</Button>
+              <Button
+                type="submit"
+                disabled={!wallet || !currentAccount || mutation.isPending}
+              >
+                Create
+              </Button>
             </div>
           </Form>
         )}

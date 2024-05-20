@@ -27,6 +27,7 @@ function TokenAssetItem({
         actions: [
           {
             type: "transferCoin",
+            coinType,
             recipient: wallet || "",
             amount: "0",
           },
@@ -36,7 +37,7 @@ function TokenAssetItem({
         dominionId,
       },
     });
-  }, [dominionId, navigate, network, wallet]);
+  }, [coinType, dominionId, navigate, network, wallet]);
 
   return (
     <ListItem>

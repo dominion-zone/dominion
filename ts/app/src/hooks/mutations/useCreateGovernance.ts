@@ -66,7 +66,7 @@ function createTxb({
     adminCap: dominionAdminCap,
     txb,
   });
-  sdk.withEnableCoinCommander({txb, dominion, adminCap: dominionAdminCap});
+  sdk.coinCommander.withEnable({sdk, txb, dominion, adminCap: dominionAdminCap});
   registry.withPushBackEntry({
     dominion,
     urlName,

@@ -14,7 +14,6 @@ import {
   SelectChangeEvent,
   Autocomplete,
 } from "@mui/material";
-import { Action } from "../queryOptions/proposalQO";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EditIcon from "@mui/icons-material/Edit";
@@ -22,6 +21,10 @@ import { Formik, Form } from "formik";
 import { useEffect, useMemo, useState } from "react";
 import useConfig from "../hooks/useConfig";
 import { Network } from "../config/network";
+import CoinTypeSelector from "./CoinTypeSelector";
+import { useSearch } from "@tanstack/react-router";
+import useDominion from "../hooks/queries/useDominion";
+import { Action, TransferCoinAction } from "../types/actions";
 
 export type ProposalActionsEditorProps = {
   network: Network;
@@ -78,7 +81,7 @@ function ToggleCommanderActionEditor({
                 <TextField name="commander" label="Commander" {...params} />
               )}
               value={values.commander}
-              onChange={(e, value) => setFieldValue("commander", value || "")}
+              onChange={(_e, value) => setFieldValue("commander", value || "")}
             />
           </div>
           <Button type="submit">Save</Button>
@@ -92,26 +95,34 @@ function TransferCoinActionEditor({
   action,
   setAction,
 }: {
-  action: {
-    type: 'transferCoin';
-    recipient: string;
-    amount: string;
-  };
+  action: TransferCoinAction;
   setAction: (action: Action) => void;
 }) {
+  const { network } = useSearch({ from: "/app" });
+  const { dominion } = useDominion();
+
   return (
     <Formik
       initialValues={{
+        coinType: "0x2::sui::SUI",
         recipient: action.recipient,
         amount: action.amount,
       }}
-      onSubmit={({ recipient, amount }) => {
-        setAction({ ...action, recipient, amount });
+      onSubmit={({ recipient, amount, coinType }) => {
+        setAction({ ...action, recipient, amount, coinType });
       }}
     >
-      {({ values, handleChange, handleBlur }) => (
+      {({ values, handleChange, handleBlur, setFieldValue }) => (
         <Form>
           <Typography>{action.type}</Typography>
+          <div>
+            <CoinTypeSelector
+              network={network}
+              wallet={dominion.id}
+              value={values.coinType}
+              onChange={(v) => setFieldValue("coinType", v)}
+            />
+          </div>
           <div>
             <TextField
               name="recipient"
@@ -176,6 +187,7 @@ function ActionCreator({
 
   const [action, setAction] = useState<Action>({
     type: "transferCoin",
+    coinType: "0x2::sui::SUI",
     recipient: "",
     amount: "0",
   });
@@ -192,6 +204,7 @@ function ActionCreator({
       case "transferCoin":
         setAction({
           type: actionType,
+          coinType: "0x2::sui::SUI",
           recipient: "",
           amount: "0",
         });

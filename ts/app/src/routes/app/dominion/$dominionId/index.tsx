@@ -12,7 +12,7 @@ import TokenAssetItem from "../../../../components/TokenAssetItem";
 import useConfig from "../../../../hooks/useConfig";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/")({
-  component: Info,
+  component: DominionInfo,
   loaderDeps: ({ search: { network } }) => ({ network }),
   loader: ({
     deps: { network },
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/app/dominion/$dominionId/")({
     ]),
 });
 
-function Info() {
+function DominionInfo() {
   const { network, wallet } = Route.useSearch();
   const { dominionId } = Route.useParams();
   const queryClient = useQueryClient();

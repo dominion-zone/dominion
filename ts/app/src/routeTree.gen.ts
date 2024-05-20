@@ -16,7 +16,9 @@ import { Route as IndexImport } from './routes/index'
 import { Route as AppIndexImport } from './routes/app/index'
 import { Route as AppMyImport } from './routes/app/my'
 import { Route as AppCreateImport } from './routes/app/create'
+import { Route as AppProposalProposalIdImport } from './routes/app/proposal/$proposalId'
 import { Route as AppDominionDominionIdImport } from './routes/app/dominion/$dominionId'
+import { Route as AppProposalProposalIdIndexImport } from './routes/app/proposal/$proposalId/index'
 import { Route as AppDominionDominionIdIndexImport } from './routes/app/dominion/$dominionId/index'
 import { Route as AppDominionDominionIdSettingsImport } from './routes/app/dominion/$dominionId/settings'
 import { Route as AppDominionDominionIdProposalsImport } from './routes/app/dominion/$dominionId/proposals'
@@ -50,10 +52,22 @@ const AppCreateRoute = AppCreateImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 
+const AppProposalProposalIdRoute = AppProposalProposalIdImport.update({
+  path: '/proposal/$proposalId',
+  getParentRoute: () => AppRoute,
+} as any)
+
 const AppDominionDominionIdRoute = AppDominionDominionIdImport.update({
   path: '/dominion/$dominionId',
   getParentRoute: () => AppRoute,
 } as any)
+
+const AppProposalProposalIdIndexRoute = AppProposalProposalIdIndexImport.update(
+  {
+    path: '/',
+    getParentRoute: () => AppProposalProposalIdRoute,
+  } as any,
+)
 
 const AppDominionDominionIdIndexRoute = AppDominionDominionIdIndexImport.update(
   {
@@ -114,6 +128,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDominionDominionIdImport
       parentRoute: typeof AppImport
     }
+    '/app/proposal/$proposalId': {
+      preLoaderRoute: typeof AppProposalProposalIdImport
+      parentRoute: typeof AppImport
+    }
     '/app/dominion/$dominionId/createProposal': {
       preLoaderRoute: typeof AppDominionDominionIdCreateProposalImport
       parentRoute: typeof AppDominionDominionIdImport
@@ -134,6 +152,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDominionDominionIdIndexImport
       parentRoute: typeof AppDominionDominionIdImport
     }
+    '/app/proposal/$proposalId/': {
+      preLoaderRoute: typeof AppProposalProposalIdIndexImport
+      parentRoute: typeof AppProposalProposalIdImport
+    }
   }
 }
 
@@ -152,6 +174,7 @@ export const routeTree = rootRoute.addChildren([
       AppDominionDominionIdSettingsRoute,
       AppDominionDominionIdIndexRoute,
     ]),
+    AppProposalProposalIdRoute.addChildren([AppProposalProposalIdIndexRoute]),
   ]),
 ])
 

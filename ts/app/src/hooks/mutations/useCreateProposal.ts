@@ -1,17 +1,14 @@
-import {
-  useSignAndExecuteTransactionBlock,
-  useSuiClient,
-} from "@mysten/dapp-kit";
+import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
 import { Network } from "../../config/network";
 import useConfig from "../useConfig";
 import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import useDominionSdk from "../useDominionSdk";
 import userMembersQO from "../../queryOptions/user/userMembersQO";
 import { Dominion, Member } from "@dominion.zone/dominion-sdk";
 import dominionQO from "../../queryOptions/dominionQO";
-import { Action } from "../../queryOptions/proposalQO";
+import { Action } from "../../types/actions";
 
 export type CreateProposalParams = {
   wallet: string;
@@ -37,7 +34,7 @@ function useCreateProposal({
 
   const mutateAsync = useCallback(
     async (
-      { wallet, name, link, actions }: CreateProposalParams,
+      { wallet, name, link, actions = [] }: CreateProposalParams,
       options?: Parameters<typeof mutation.mutateAsync>[1]
     ) => {
       const { dominion, governance } = await queryClient.fetchQuery(
@@ -99,9 +96,45 @@ function useCreateProposal({
         txb,
       });
 
-      if (actions) {
-        
-      }
+      const commands = actions.map((action) => {
+        switch (action.type) {
+          case "enableCommander":
+          case "disableCommander":
+            return Dominion.withNewEnableCommanderCommand({
+              sdk: dominionSdk,
+              dominion: dominion.id,
+              targetDominion: dominion.id,
+              commander: action.commander,
+              txb,
+            });
+          case "transferCoin":
+            return dominionSdk.coinCommander.withCreateCommand({
+              sdk: dominionSdk,
+              txb,
+              dominion: dominion.id,
+              action: {
+                type: "transferCoin",
+                coinType: action.coinType,
+                recipient: action.recipient,
+                amount: BigInt(action.amount),
+              },
+            });
+          default:
+            throw new Error("Invalid action type");
+        }
+      });
+
+      Member.withAddOption({
+        sdk: dominionSdk,
+        proposalBuilder,
+        coinType: governance.coinType,
+        label: "yes",
+        commands: txb.makeMoveVec({
+          type: `${config.dominion.contract}::command::Command`,
+          objects: commands,
+        }),
+        txb,
+      });
 
       Member.withStart({
         sdk: dominionSdk,
@@ -110,7 +143,7 @@ function useCreateProposal({
         delay: 0n,
         txb,
       });
-      
+
       Member.withCommit({
         sdk: dominionSdk,
         proposalBuilder,
@@ -127,7 +160,15 @@ function useCreateProposal({
       txb.setSenderIfNotSet(wallet);
       return await mutation.mutateAsync({ transactionBlock: txb }, options);
     },
-    [config.testCoin, dominionId, dominionSdk, mutation, network, queryClient]
+    [
+      config.dominion.contract,
+      config.testCoin,
+      dominionId,
+      dominionSdk,
+      mutation,
+      network,
+      queryClient,
+    ]
   );
 
   return useMemo(

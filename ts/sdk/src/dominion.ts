@@ -110,6 +110,29 @@ export class Dominion {
     });
   }
 
+  public static withNewEnableCommanderCommand({
+    sdk,
+    dominion,
+    targetDominion,
+    commander,
+    txb,
+  }: {
+    sdk: DominionSDK;
+    dominion: TransactionObjectInput;
+    targetDominion: TransactionObjectInput;
+    commander: string;
+    txb: TransactionBlock;
+  }) {
+    return txb.moveCall({
+      target: `${sdk.config.dominion.contract}::command::new_enable_commander_command`,
+      arguments: [
+        txb.object(dominion),
+        txb.object(targetDominion),
+        txb.pure(commander), // todo
+      ],
+    });
+  }
+
   static fromData({
     sdk,
     data: {

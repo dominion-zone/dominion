@@ -70,10 +70,9 @@ module dominion::dominion_admin_commander {
         )
     }
 
-    public fun new_enable_commander_command(
+    public fun new_enable_commander_command<C: drop>(
         dominion: &Dominion,
         target_dominion: &Dominion,
-        commander: TypeName,
         ctx: &mut TxContext,
     ): Command {
         let mut payload = AdminCommand {
@@ -84,7 +83,7 @@ module dominion::dominion_admin_commander {
         dynamic_field::add(
             &mut payload.id,
             TCommander,
-            commander,
+            type_name::get<C>(),
         );
         dominion.new_command_from_object<DominionAdminCommander, AdminCommand>(
             DominionAdminCommander(),
@@ -93,12 +92,12 @@ module dominion::dominion_admin_commander {
         )
     }
 
-    public fun new_disable_commander_command(
+    public fun new_disable_commander_command<C: drop>(
         dominion: &Dominion,
         target_dominion: &Dominion,
-        commander: TypeName,
         ctx: &mut TxContext,
     ): Command {
+        let commander = type_name::get<C>();
         assert!(
             object::id(dominion) != object::id(target_dominion) ||
             commander != type_name::get<DominionAdminCommander>(),

@@ -1,8 +1,6 @@
 import {SuiClient} from '@mysten/sui.js/client';
-import {
-  TransactionBlock,
-  TransactionObjectInput,
-} from '@mysten/sui.js/transactions';
+import {Commander} from './Commander';
+import {CoinCommander} from './CoinCommander';
 
 export type Config = {
   dominion: {
@@ -20,23 +18,18 @@ export type Config = {
 };
 
 export class DominionSDK {
+  public readonly commanderByType: Map<string, Commander> = new Map();
+
+  public readonly coinCommander: CoinCommander;
+
   public constructor(
     public readonly sui: SuiClient,
     public readonly config: Config
-  ) {}
-
-  public withEnableCoinCommander({
-    txb,
-    dominion,
-    adminCap,
-  }: {
-    txb: TransactionBlock;
-    dominion: TransactionObjectInput;
-    adminCap: TransactionObjectInput;
-  }) {
-    txb.moveCall({
-      target: `${this.config.frameworkCommander.contract}::coin_commander::enable`,
-      arguments: [txb.object(dominion), txb.object(adminCap)],
-    });
+  ) {
+    this.coinCommander = new CoinCommander(config.frameworkCommander.contract);
+    this.commanderByType.set(
+      this.coinCommander.commanderType,
+      this.coinCommander
+    );
   }
 }
