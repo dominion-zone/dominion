@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import userCoinTypesQO from "../queryOptions/user/userCoinTypesQO";
 import { Network } from "../config/network";
 import { useMemo } from "react";
-import useConfig from "../hooks/useConfig";
+import useSuspenseConfig from "../hooks/useSuspenseConfig";
 
 const suiType = "0x2::sui::SUI";
 
@@ -22,7 +22,7 @@ function CoinTypeSelector({
     userCoinTypesQO({ network, wallet })
   );
 
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
 
   const improvedCoinTypes = useMemo(() => {
     const testCoinType: string | undefined =

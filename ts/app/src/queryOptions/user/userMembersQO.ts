@@ -13,7 +13,7 @@ function userMembersQO({
   queryClient,
 }: {
   network: Network;
-  wallet: string;
+  wallet?: string;
   queryClient: QueryClient;
 }) {
   return queryOptions({
@@ -24,8 +24,9 @@ function userMembersQO({
         network as Network
       ];
       const sdk = new DominionSDK(sui, config);
-      return await Member.all({ sdk, owner: wallet });
+      return await Member.all({ sdk, owner: wallet! });
     },
+    enabled: !!wallet,
   });
 }
 

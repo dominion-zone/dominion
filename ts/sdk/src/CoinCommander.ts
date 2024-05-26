@@ -1,3 +1,4 @@
+/* eslint-disable node/no-unsupported-features/es-builtins */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   TransactionBlock,
@@ -27,6 +28,7 @@ type CoinCommandData = {
 
 export class CoinCommand extends Command {
   public constructor(
+    sdk: DominionSDK,
     id: string,
     commanderType: string,
     dominionId: string,
@@ -34,7 +36,66 @@ export class CoinCommand extends Command {
     isExecuted: boolean,
     public readonly action: CoinCommandAction
   ) {
-    super(id, commanderType, dominionId, executionError, isExecuted);
+    super(sdk, id, commanderType, dominionId, executionError, isExecuted);
+  }
+
+  async withExecute({
+    txb,
+    executor,
+  }: {
+    txb: TransactionBlock;
+    executor: TransactionObjectInput;
+  }): Promise<TransactionObjectInput> {
+    switch (this.action.type) {
+      case 'transferCoin': {
+        const {data: coins} = await this.sdk.sui.getCoins({
+          owner: this.dominionId,
+          coinType: this.action.coinType,
+        });
+        const total = coins.reduce(
+          (acc, {balance}) => acc + BigInt(balance),
+          BigInt(0)
+        );
+        if (total < this.action.amount) {
+          throw new Error(
+            `Not enough balance: ${total} < ${this.action.amount}`
+          );
+        }
+        for (let i = 1; i < coins.length; i++) {
+          CoinCommander.withJoinCoins({
+            sdk: this.sdk,
+            txb,
+            coinType: this.action.coinType,
+            dominion: txb.object(this.dominionId),
+            source: {
+              digest: coins[i].digest,
+              objectId: coins[i].coinObjectId,
+              version: coins[i].version,
+            },
+            target: {
+              digest: coins[0].digest,
+              objectId: coins[0].coinObjectId,
+              version: coins[0].version,
+            },
+          });
+        }
+        return txb.moveCall({
+          target: `${this.sdk.config.frameworkCommander.contract}::coin_commander::execute_transfer`,
+          typeArguments: [this.action.coinType],
+          arguments: [
+            txb.object(executor),
+            txb.object(this.dominionId),
+            txb.receivingRef({
+              digest: coins[0].digest,
+              objectId: coins[0].coinObjectId,
+              version: coins[0].version,
+            }),
+          ],
+        });
+      }
+      default:
+        throw new Error('Unknown command type');
+    }
   }
 }
 
@@ -129,6 +190,7 @@ export class CoinCommander implements Commander {
     }
 
     return new CoinCommand(
+      sdk,
       id,
       this.commanderType,
       dominionId,
@@ -162,5 +224,69 @@ export class CoinCommander implements Commander {
         });
       }
     }
+  }
+
+  static withDeposit({
+    sdk,
+    txb,
+    coinType,
+    dominion,
+    source,
+    target,
+  }: {
+    sdk: DominionSDK;
+    txb: TransactionBlock;
+    coinType: string;
+    dominion: TransactionObjectInput;
+    source: TransactionObjectInput;
+    target: {
+      digest: string;
+      objectId: string;
+      version: string | number | bigint;
+    };
+  }) {
+    txb.moveCall({
+      target: `${sdk.config.frameworkCommander.contract}::coin_commander::deposit`,
+      typeArguments: [coinType],
+      arguments: [
+        txb.object(dominion),
+        txb.receivingRef(target),
+        txb.object(source),
+      ],
+    });
+  }
+
+  static withJoinCoins({
+    sdk,
+    txb,
+    coinType,
+    dominion,
+    source,
+    target,
+  }: {
+    sdk: DominionSDK;
+    txb: TransactionBlock;
+    coinType: string;
+    dominion: TransactionObjectInput;
+    source: {
+      digest: string;
+      objectId: string;
+      version: string | number | bigint;
+    };
+    target: {
+      digest: string;
+      objectId: string;
+      version: string | number | bigint;
+    };
+  }) {
+    txb.moveCall({
+      target: `${sdk.config.frameworkCommander.contract}::coin_commander::join_coins`,
+      typeArguments: [coinType],
+      arguments: [
+        txb.object(dominion),
+        txb.receivingRef(target),
+        txb.receivingRef(source),
+      ],
+    });
   }
 }

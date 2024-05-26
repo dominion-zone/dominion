@@ -14,6 +14,7 @@ import axios from 'axios';
 import * as dotenv from 'dotenv';
 import {installDeployTestCoinCLI} from './deployTestCoin';
 import {installCreatePublicRegistry} from './createPublicRegistry';
+import {installCrank} from './crank';
 dotenv.config();
 
 export const cli = () => {
@@ -71,6 +72,7 @@ export const cli = () => {
   installCreateDominion(program);
   installCreateGovernance(program);
   installCreatePublicRegistry(program);
+  installCrank(program);
 
   return program;
 };

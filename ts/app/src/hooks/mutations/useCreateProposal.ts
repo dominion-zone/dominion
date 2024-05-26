@@ -1,17 +1,15 @@
 import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
 import { Network } from "../../config/network";
-import useConfig from "../useConfig";
+import useSuspenseConfig from "../useSuspenseConfig";
 import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { useQueryClient } from "@tanstack/react-query";
 import useDominionSdk from "../useDominionSdk";
-import userMembersQO from "../../queryOptions/user/userMembersQO";
 import { Dominion, Member } from "@dominion.zone/dominion-sdk";
-import dominionQO from "../../queryOptions/dominionQO";
 import { Action } from "../../types/actions";
+import useSuspenseMember from "../queries/useSuspenseMember";
+import useSuspenseDominion from "../queries/useSuspenseDominion";
 
 export type CreateProposalParams = {
-  wallet: string;
   name: string;
   link: string;
   actions?: Action[];
@@ -20,34 +18,31 @@ export type CreateProposalParams = {
 function useCreateProposal({
   network,
   dominionId,
+  wallet,
 }: {
   network: Network;
   dominionId: string;
+  wallet?: string;
 }) {
   const mutation = useSignAndExecuteTransactionBlock({
     mutationKey: [network, "createProposal", dominionId],
     onSuccess: () => {},
   });
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
   const dominionSdk = useDominionSdk({ network });
-  const queryClient = useQueryClient();
+
+  const member = useSuspenseMember({ network, dominionId, wallet });
+  const { dominion, governance } = useSuspenseDominion({ network, dominionId });
 
   const mutateAsync = useCallback(
     async (
-      { wallet, name, link, actions = [] }: CreateProposalParams,
+      { name, link, actions = [] }: CreateProposalParams,
       options?: Parameters<typeof mutation.mutateAsync>[1]
     ) => {
-      const { dominion, governance } = await queryClient.fetchQuery(
-        dominionQO({ network, dominionId, queryClient })
-      );
+      if (!wallet) {
+        throw new Error("Wallet is required");
+      }
       const txb = new TransactionBlock();
-
-      const members = await queryClient.fetchQuery(
-        userMembersQO({ network, wallet, queryClient })
-      );
-      const member = members.find(
-        (m) => m.governanceId === dominion.ownerAddress
-      );
 
       let memberArg;
 
@@ -163,11 +158,13 @@ function useCreateProposal({
     [
       config.dominion.contract,
       config.testCoin,
-      dominionId,
+      dominion.id,
       dominionSdk,
+      governance.coinType,
+      governance.id,
+      member,
       mutation,
-      network,
-      queryClient,
+      wallet,
     ]
   );
 

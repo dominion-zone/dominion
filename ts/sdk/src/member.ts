@@ -102,6 +102,26 @@ export class Member {
     });
   }
 
+  public static withWithdraw({
+    sdk,
+    member,
+    coinType,
+    amount,
+    txb,
+  }: {
+    sdk: DominionSDK;
+    member: TransactionObjectInput;
+    coinType: string;
+    amount: bigint;
+    txb: TransactionBlock;
+  }) {
+    txb.moveCall({
+      target: `${sdk.config.governance.contract}::member::withdraw`,
+      arguments: [txb.object(member), txb.pure(amount)],
+      typeArguments: [coinType],
+    });
+  }
+
   public static fromData({
     objectId,
     content: {

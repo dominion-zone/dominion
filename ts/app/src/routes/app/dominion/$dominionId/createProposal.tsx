@@ -5,9 +5,9 @@ import { z } from "zod";
 import { Formik, Form } from "formik";
 import { useCallback } from "react";
 import ProposalActionsEditor from "../../../../components/ProposalActionsEditor";
-import { Action } from "../../../../queryOptions/proposalQO";
 import useCreateProposal from "../../../../hooks/mutations/useCreateProposal";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { Action } from "../../../../types/actions";
 
 const action = z.union([
   z.object({
@@ -40,7 +40,7 @@ function CreateProposal() {
   const { dominionId } = Route.useParams();
   const currentAccount = useCurrentAccount();
 
-  const mutation = useCreateProposal({ network, dominionId });
+  const mutation = useCreateProposal({ network, dominionId, wallet });
 
   const handleSubmit = useCallback(
     ({
@@ -52,9 +52,9 @@ function CreateProposal() {
       link: string;
       actions: Action[];
     }) => {
-      mutation.mutate({ name, link, actions, wallet: wallet! });
+      mutation.mutate({ name, link, actions });
     },
-    [mutation, wallet]
+    [mutation]
   );
   return (
     <Container>

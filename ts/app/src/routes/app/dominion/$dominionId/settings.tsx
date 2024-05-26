@@ -9,7 +9,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import DominionHeader from "../../../../components/DominionHeader";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import dominionQO from "../../../../queryOptions/dominionQO";
-import useConfig from "../../../../hooks/useConfig";
+import useSuspenseConfig from "../../../../hooks/useSuspenseConfig";
 import { ChangeEvent, useCallback } from "react";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/settings")({
@@ -24,7 +24,7 @@ function Settings() {
     data: { dominion },
   } = useSuspenseQuery(dominionQO({ network, dominionId, queryClient }));
 
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
 
   const hasCoinCommander = dominion.hasCommander(
     `${config.frameworkCommander.contract}::coin_commander::CoinCommander`

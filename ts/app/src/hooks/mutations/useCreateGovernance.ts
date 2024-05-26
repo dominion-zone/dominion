@@ -9,7 +9,7 @@ import {
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
 import useDominionSdk from "../useDominionSdk";
-import useConfig from "../useConfig";
+import useSuspenseConfig from "../useSuspenseConfig";
 import { Config } from "../../queryOptions/configQO";
 import { registryQO } from "../../queryOptions/registryQO";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
@@ -128,7 +128,7 @@ function useCreateGovernance({
   const mutation = useSignAndExecuteTransactionBlock({
     mutationKey: [network, "createGovernance"],
   });
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
   const dominionSdk = useDominionSdk({ network });
   const queryClient = useQueryClient();
   const { data: registry } = useSuspenseQuery(

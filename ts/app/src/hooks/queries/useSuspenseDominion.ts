@@ -1,10 +1,14 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useParams, useSearch } from "@tanstack/react-router";
 import dominionQO from "../../queryOptions/dominionQO";
+import { Network } from "../../config/network";
 
-function useDominion() {
-  const { network } = useSearch({ from: "/app" });
-  const { dominionId } = useParams({ from: "/app/dominion/$dominionId" });
+function useSuspenseDominion({
+  network,
+  dominionId,
+}: {
+  network: Network;
+  dominionId: string;
+}) {
   const queryClient = useQueryClient();
 
   const { data } = useSuspenseQuery(
@@ -13,4 +17,4 @@ function useDominion() {
   return data;
 }
 
-export default useDominion;
+export default useSuspenseDominion;

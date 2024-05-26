@@ -19,11 +19,11 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import { Formik, Form } from "formik";
 import { useEffect, useMemo, useState } from "react";
-import useConfig from "../hooks/useConfig";
+import useSuspenseConfig from "../hooks/useSuspenseConfig";
 import { Network } from "../config/network";
 import CoinTypeSelector from "./CoinTypeSelector";
 import { useSearch } from "@tanstack/react-router";
-import useDominion from "../hooks/queries/useDominion";
+import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
 import { Action, TransferCoinAction } from "../types/actions";
 
 export type ProposalActionsEditorProps = {
@@ -49,7 +49,7 @@ function ToggleCommanderActionEditor({
       };
   setAction: (action: Action) => void;
 }) {
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
   const commanders = useMemo(
     () => [
       `${config.frameworkCommander.contract}::coin_commander::CoinCommander`,
@@ -99,7 +99,8 @@ function TransferCoinActionEditor({
   setAction: (action: Action) => void;
 }) {
   const { network } = useSearch({ from: "/app" });
-  const { dominion } = useDominion();
+  const { dominionId } = useParams({ from: "/app/dominion/$dominionId" });
+  const { dominion } = useSuspenseDominion({ network, dominionId });
 
   return (
     <Formik

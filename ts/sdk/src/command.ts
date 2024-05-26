@@ -1,3 +1,7 @@
+import {
+  TransactionBlock,
+  TransactionObjectInput,
+} from '@mysten/sui.js/transactions';
 import {DominionSDK} from './sdk';
 
 export type CommandData = {
@@ -13,6 +17,7 @@ export type CommandData = {
 
 export abstract class Command {
   public constructor(
+    public readonly sdk: DominionSDK,
     public readonly id: string,
     public readonly commanderType: string,
     public readonly dominionId: string,
@@ -21,6 +26,14 @@ export abstract class Command {
   ) {}
 
   abstract get action(): object;
+
+  abstract withExecute({
+    txb,
+    executor,
+  }: {
+    txb: TransactionBlock;
+    executor: TransactionObjectInput;
+  }): Promise<TransactionObjectInput>;
 
   static fromData({
     sdk,

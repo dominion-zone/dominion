@@ -1,6 +1,6 @@
 import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
 import { Network } from "../../config/network";
-import useConfig from "../useConfig";
+import useSuspenseConfig from "../useSuspenseConfig";
 import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ function useCastVote({
     mutationKey: [network, "castVote", proposalId],
     onSuccess: () => {},
   });
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
   const dominionSdk = useDominionSdk({ network });
   const queryClient = useQueryClient();
 

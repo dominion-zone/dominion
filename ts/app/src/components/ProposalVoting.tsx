@@ -7,7 +7,13 @@ import { Proposal } from "@dominion.zone/dominion-sdk";
 import useCastVote from "../hooks/mutations/useCastVote";
 import { useCallback, useMemo } from "react";
 
-function ProposalVoting({ proposal }: { proposal: Proposal }) {
+function ProposalVoting({
+  proposal,
+  disabled = false,
+}: {
+  proposal: Proposal;
+  disabled?: boolean;
+}) {
   const { network, wallet } = useSearch({ from: "/app" });
 
   const currentAccount = useCurrentAccount();
@@ -77,25 +83,25 @@ function ProposalVoting({ proposal }: { proposal: Proposal }) {
       <Typography>Vote</Typography>
       {currentVote && <Typography>Current vote: {currentVoteKind}</Typography>}
       <Button
-        disabled={!currentAccount || currentVoteKind === "for"}
+        disabled={disabled || !currentAccount || currentVoteKind === "for"}
         onClick={castFor}
       >
         For
       </Button>
       <Button
-        disabled={!currentAccount || currentVoteKind === "against"}
+        disabled={disabled || !currentAccount || currentVoteKind === "against"}
         onClick={castAgainst}
       >
         Against
       </Button>
       <Button
-        disabled={!currentAccount || currentVoteKind === "abstain"}
+        disabled={disabled || !currentAccount || currentVoteKind === "abstain"}
         onClick={castAbstain}
       >
         Abstain
       </Button>
       <Button
-        disabled={!currentAccount || currentVoteKind === null}
+        disabled={disabled || !currentAccount || currentVoteKind === null}
         onClick={castRelinquish}
       >
         Reliquish

@@ -9,7 +9,7 @@ import DominionAdminItem from "../../../../components/DominionAdminItem";
 import UnknownAssetItem from "../../../../components/UnknownAssetItem";
 import DepositTokenToDominionButton from "../../../../components/DepositTokenToDominionButton";
 import TokenAssetItem from "../../../../components/TokenAssetItem";
-import useConfig from "../../../../hooks/useConfig";
+import useSuspenseConfig from "../../../../hooks/useSuspenseConfig";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/")({
   component: DominionInfo,
@@ -41,7 +41,7 @@ function DominionInfo() {
     data: { coins, dominionAdmins, governanceAdmins, unknown },
   } = useSuspenseQuery(dominionAssetsQO({ network, dominionId, queryClient }));
 
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
 
   const hasCoinCommander = dominion.hasCommander(
     `${config.frameworkCommander.contract}::coin_commander::CoinCommander`

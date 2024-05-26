@@ -8,7 +8,7 @@ import { useCallback } from "react";
 import useCreateGovernance from "../../hooks/mutations/useCreateGovernance";
 import DominionIndexHeader from "../../components/DominionIndexHeader";
 import { Formik, Form } from "formik";
-import useConfig from "../../hooks/useConfig";
+import useSuspenseConfig from "../../hooks/useSuspenseConfig";
 
 export const Route = createFileRoute("/app/create")({
   component: CreateGovernance,
@@ -24,7 +24,7 @@ function CreateGovernance() {
   const { network, wallet } = Route.useSearch();
   const currentAccount = useCurrentAccount();
 
-  const config = useConfig({ network });
+  const config = useSuspenseConfig({ network });
 
   const defaultCoin =
     (config.testCoin && `${config.testCoin.contract}::test_coin::TEST_COIN`) ||
