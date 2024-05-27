@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import AppHeader from "../components/AppHeader";
-import { ReactNode, Suspense, useCallback, useEffect } from "react";
+import { ReactNode, Suspense, useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import {
   SuiClientProvider,
@@ -9,6 +9,7 @@ import {
 } from "@mysten/dapp-kit";
 import { networkConfig, Network } from "../config/network";
 import { configQO } from "../queryOptions/configQO";
+import { useSnackbar } from "notistack";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -29,6 +30,22 @@ function WalletHandler({ children }: { children: ReactNode }) {
   const currentAccount = useCurrentAccount();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const [currentAddress, setCurrentAddress] = useState(currentAccount?.address);
+  
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    if (currentAccount?.address && currentAccount.address !== currentAddress) {
+      enqueueSnackbar("Connected to wallet " + currentAccount.address, {
+        variant: "success",
+      });
+    } else if (!currentAccount?.address && currentAddress){
+      enqueueSnackbar("Disconnected from wallet", {
+        variant: "info",
+      });
+    }
+    setCurrentAddress(currentAccount?.address);
+  }, [currentAccount?.address, currentAddress, enqueueSnackbar]);
 
   useEffect(() => {
     if (currentAccount && currentAccount.address !== search.wallet) {

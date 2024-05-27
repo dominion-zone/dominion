@@ -7,6 +7,7 @@ import useDominionSdk from "../useDominionSdk";
 import { CoinStruct } from "@mysten/sui.js/client";
 import useSuspenseMember from "../queries/useSuspenseMember";
 import useSuspenseDominion from "../queries/useSuspenseDominion";
+import { useSnackbar } from "notistack";
 
 export type LockTokensParams = {
   amount: bigint;
@@ -23,13 +24,13 @@ function useLockTokens({
 }) {
   const mutation = useSignAndExecuteTransactionBlock({
     mutationKey: [network, "lockTokens", dominionId],
-    onSuccess: () => {},
   });
 
   const dominionSdk = useDominionSdk({ network });
 
   const member = useSuspenseMember({ network, dominionId, wallet });
   const { governance } = useSuspenseDominion({ network, dominionId });
+  const { enqueueSnackbar } = useSnackbar();
 
   const mutateAsync = useCallback(
     async (
@@ -39,6 +40,7 @@ function useLockTokens({
       if (!wallet) {
         throw new Error("Wallet is required");
       }
+
       const coins: CoinStruct[] = [];
       let cursor = null;
       for (;;) {
@@ -94,9 +96,24 @@ function useLockTokens({
       });
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
+      enqueueSnackbar(
+        `Locking ${amount} of ${governance.coinType} successfully`,
+        {
+          variant: "success",
+        }
+      );
+      return r;
     },
-    [dominionSdk, governance.coinType, governance.id, member, mutation, wallet]
+    [
+      dominionSdk,
+      enqueueSnackbar,
+      governance.coinType,
+      governance.id,
+      member,
+      mutation,
+      wallet,
+    ]
   );
 
   return useMemo(

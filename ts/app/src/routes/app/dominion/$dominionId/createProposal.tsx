@@ -52,7 +52,10 @@ function CreateProposal() {
       link: string;
       actions: Action[];
     }) => {
-      mutation.mutate({ name, link, actions });
+      mutation.mutate({ name, link, actions }, {
+        onSuccess: () => {
+        }
+      });
     },
     [mutation]
   );

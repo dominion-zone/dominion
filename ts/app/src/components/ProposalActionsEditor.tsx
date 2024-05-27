@@ -4,246 +4,23 @@ import {
   List,
   ListItem,
   Typography,
-  TextField,
-  Button,
   Dialog,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  Autocomplete,
+  Container,
 } from "@mui/material";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import { Formik, Form } from "formik";
-import { useEffect, useMemo, useState } from "react";
-import useSuspenseConfig from "../hooks/useSuspenseConfig";
+import { useState } from "react";
 import { Network } from "../config/network";
-import CoinTypeSelector from "./CoinTypeSelector";
-import { useSearch } from "@tanstack/react-router";
-import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
-import { Action, TransferCoinAction } from "../types/actions";
+import { Action } from "../types/actions";
+import ActionEditor from "./actions/ActionEditor";
+import ActionCreator from "./actions/ActionCreator";
+import ActionInfo from "./actions/ActionInfo";
 
 export type ProposalActionsEditorProps = {
   network: Network;
   actions: Action[];
   setActions: (actions: Action[]) => void;
 };
-
-function ToggleCommanderActionEditor({
-  network,
-  action,
-  setAction,
-}: {
-  network: Network;
-  action:
-    | {
-        type: "enableCommander";
-        commander: string;
-      }
-    | {
-        type: "disableCommander";
-        commander: string;
-      };
-  setAction: (action: Action) => void;
-}) {
-  const config = useSuspenseConfig({ network });
-  const commanders = useMemo(
-    () => [
-      `${config.frameworkCommander.contract}::coin_commander::CoinCommander`,
-      `${config.dominion.contract}::dominion_admin_commander::DominionAdminCommander`,
-      `${config.governance.contract}::governance_admin_commander::GovernanceAdminCommander`,
-    ],
-    [
-      config.dominion.contract,
-      config.frameworkCommander.contract,
-      config.governance.contract,
-    ]
-  );
-  return (
-    <Formik
-      initialValues={{ commander: action.commander }}
-      onSubmit={({ commander }) => {
-        setAction({ ...action, commander });
-      }}
-    >
-      {({ values, setFieldValue }) => (
-        <Form>
-          <Typography>{action.type}</Typography>
-          <div>
-            <Autocomplete
-              sx={{ width: 1000 }}
-              freeSolo={true}
-              options={commanders}
-              renderInput={(params) => (
-                <TextField name="commander" label="Commander" {...params} />
-              )}
-              value={values.commander}
-              onChange={(_e, value) => setFieldValue("commander", value || "")}
-            />
-          </div>
-          <Button type="submit">Save</Button>
-        </Form>
-      )}
-    </Formik>
-  );
-}
-
-function TransferCoinActionEditor({
-  action,
-  setAction,
-}: {
-  action: TransferCoinAction;
-  setAction: (action: Action) => void;
-}) {
-  const { network } = useSearch({ from: "/app" });
-  const { dominionId } = useParams({ from: "/app/dominion/$dominionId" });
-  const { dominion } = useSuspenseDominion({ network, dominionId });
-
-  return (
-    <Formik
-      initialValues={{
-        coinType: "0x2::sui::SUI",
-        recipient: action.recipient,
-        amount: action.amount,
-      }}
-      onSubmit={({ recipient, amount, coinType }) => {
-        setAction({ ...action, recipient, amount, coinType });
-      }}
-    >
-      {({ values, handleChange, handleBlur, setFieldValue }) => (
-        <Form>
-          <Typography>{action.type}</Typography>
-          <div>
-            <CoinTypeSelector
-              network={network}
-              wallet={dominion.id}
-              value={values.coinType}
-              onChange={(v) => setFieldValue("coinType", v)}
-            />
-          </div>
-          <div>
-            <TextField
-              name="recipient"
-              label="Recipient"
-              value={values.recipient}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <TextField
-              type="number"
-              name="amount"
-              label="Amount"
-              value={values.amount}
-              onChange={handleChange}
-              onBlur={handleBlur}
-            />
-          </div>
-          <Button type="submit">Save</Button>
-        </Form>
-      )}
-    </Formik>
-  );
-}
-
-function ActionEditor({
-  network,
-  action,
-  setAction,
-}: {
-  network: Network;
-  action: Action;
-  setAction: (action: Action) => void;
-}) {
-  switch (action.type) {
-    case "enableCommander":
-    case "disableCommander":
-      return (
-        <ToggleCommanderActionEditor
-          network={network}
-          action={action}
-          setAction={setAction}
-        />
-      );
-    case "transferCoin":
-      return <TransferCoinActionEditor action={action} setAction={setAction} />;
-  }
-}
-
-function ActionCreator({
-  network,
-  open,
-  createAction,
-}: {
-  network: Network;
-  open: boolean;
-  createAction: (action: Action) => void;
-}) {
-  const [actionType, setActionType] = useState<
-    "enableCommander" | "disableCommander" | "transferCoin"
-  >("transferCoin");
-
-  const [action, setAction] = useState<Action>({
-    type: "transferCoin",
-    coinType: "0x2::sui::SUI",
-    recipient: "",
-    amount: "0",
-  });
-
-  useEffect(() => {
-    switch (actionType) {
-      case "enableCommander":
-      case "disableCommander":
-        setAction({
-          type: actionType,
-          commander: "",
-        });
-        break;
-      case "transferCoin":
-        setAction({
-          type: actionType,
-          coinType: "0x2::sui::SUI",
-          recipient: "",
-          amount: "0",
-        });
-    }
-  }, [actionType]);
-
-  return (
-    <Dialog open={open}>
-      <Typography>Create Action</Typography>
-      <FormControl fullWidth>
-        <InputLabel id="action-type-selector-label">Action type</InputLabel>
-        <Select
-          labelId="action-type-selector-label"
-          id="action-type-selector"
-          value={actionType}
-          label="Action type"
-          onChange={(event: SelectChangeEvent) =>
-            setActionType(
-              event.target.value as
-                | "enableCommander"
-                | "disableCommander"
-                | "transferCoin"
-            )
-          }
-        >
-          <MenuItem value="enableCommander">Enable commander</MenuItem>
-          <MenuItem value="disableCommander">Disable commander</MenuItem>
-          <MenuItem value="transferCoin">Transfer coin</MenuItem>
-        </Select>
-        <ActionEditor
-          network={network}
-          action={action}
-          setAction={createAction}
-        />
-      </FormControl>
-    </Dialog>
-  );
-}
 
 function ProposalActionItem({
   network,
@@ -261,16 +38,19 @@ function ProposalActionItem({
   return (
     <ListItem>
       <Dialog open={open}>
-        <ActionEditor
-          network={network}
-          action={action}
-          setAction={(action) => {
-            setAction(action);
-            setOpen(false);
-          }}
-        />
+        <Container>
+          <ActionEditor
+            network={network}
+            action={action}
+            setAction={(action) => {
+              setAction(action);
+              setOpen(false);
+            }}
+            onCancel={() => setOpen(false)}
+          />
+        </Container>
       </Dialog>
-      {JSON.stringify(action, undefined, 2)}
+      <ActionInfo action={action} />
       <IconButton onClick={() => setOpen(true)}>
         <EditIcon />
       </IconButton>
@@ -286,19 +66,8 @@ function ProposalActionsEditor({
   actions,
   setActions,
 }: ProposalActionsEditorProps) {
-  const [creatorOpen, setCreatorOpen] = useState(false);
-
   return (
     <Card>
-      <ActionCreator
-        network={network}
-        open={creatorOpen}
-        createAction={(action) => {
-          actions.push(action);
-          setActions(actions);
-          setCreatorOpen(false);
-        }}
-      />
       <Typography>Actions</Typography>
       <List>
         {actions.map((action, i) => (
@@ -317,9 +86,13 @@ function ProposalActionsEditor({
           />
         ))}
       </List>
-      <IconButton onClick={() => setCreatorOpen(true)}>
-        <AddCircleOutlineIcon />
-      </IconButton>
+      <ActionCreator
+        network={network}
+        createAction={(action) => {
+          actions.push(action);
+          setActions(actions);
+        }}
+      />
     </Card>
   );
 }

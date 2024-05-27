@@ -5,4 +5,4 @@ export * from './member';
 export * from './proposal';
 export * from './command';
 export * from './registry';
-export * from './CoinCommander';
+export * from './commanders/index';

@@ -3,6 +3,7 @@ module dominion_governance::proposal {
     use sui::url::Url;
     use sui::bag::{Self, Bag};
     use sui::clock::Clock;
+    use sui::event;
 
     use dominion::command::Command;
     use dominion::executor::Executor;
@@ -74,6 +75,14 @@ module dominion_governance::proposal {
         current_command_id: ID,
     }
 
+    public struct ProposalCreated has copy, drop {
+        proposal_id: ID,
+        governance_id: ID,
+        name: String,
+        link: Url,
+        created_at: u64,
+    }
+
     public(package) fun new<T>(
         governance: &mut Governance<T>,
         name: String,
@@ -82,10 +91,12 @@ module dominion_governance::proposal {
         ctx: &mut TxContext,
     ): (Proposal<T>, ProposalOwnerCap) {
         let owner_cap_uid = object::new(ctx);
+        let governance_id = object::id(governance);
+        let created_at = clock.timestamp_ms();
 
         let self = Proposal<T> {
             id: object::new(ctx),
-            governance_id: object::id(governance),
+            governance_id,
             owner_cap_id: owner_cap_uid.to_inner(),
             name,
             link,
@@ -95,7 +106,7 @@ module dominion_governance::proposal {
             deny_vote_weight: 0,
             abstain_vote_weight: 0,
             vote_threshold: governance.vote_threshold(),
-            created_at: clock.timestamp_ms(),
+            created_at,
             voting_at: option::none(),
             max_voting_time: governance.max_voting_time(),
             cool_off_time: governance.cool_off_time(),
@@ -105,13 +116,25 @@ module dominion_governance::proposal {
             is_executing: false,
         };
 
+        let proposal_id = object::id(&self);
+
         let owner_cap = ProposalOwnerCap {
             id: owner_cap_uid,
-            proposal_id: object::id(&self),
+            proposal_id,
             locked_weight: governance.min_weight_to_create_proposal(),
         };
 
-        governance.register_proposal(object::id(&self));
+        governance.register_proposal(proposal_id);
+
+        event::emit(
+            ProposalCreated {
+                proposal_id,
+                governance_id,
+                name,
+                link,
+                created_at,
+            }
+        );
 
         (self, owner_cap)
     }

@@ -4,6 +4,7 @@ import { Network } from "../../config/network";
 import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import useSuspenseConfig from "../useSuspenseConfig";
+import { useSnackbar } from "notistack";
 
 export type AirdropParams = {
   wallet: string;
@@ -19,6 +20,7 @@ function useAirdrop({ network }: { network: Network }) {
   });
 
   const config = useSuspenseConfig({ network });
+  const { enqueueSnackbar } = useSnackbar();
 
   const mutateAsync = useCallback(
     async (
@@ -33,9 +35,13 @@ function useAirdrop({ network }: { network: Network }) {
       txb.transferObjects([txb.object(coin)], wallet);
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
+      enqueueSnackbar(`Airdrop of ${amount} test tokens successful`, {
+        variant: "success",
+      });
+      return r;
     },
-    [config.testCoin, mutation]
+    [config.testCoin, enqueueSnackbar, mutation]
   );
 
   return useMemo(

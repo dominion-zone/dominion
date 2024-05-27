@@ -1,7 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 import { Network, networkConfig } from "../config/network";
 import { SuiClient } from "@mysten/sui.js/client";
-import { Dominion, DominionSDK, Governance, Proposal } from "@dominion.zone/dominion-sdk";
+import { Dominion, DominionSDK, Governance } from "@dominion.zone/dominion-sdk";
 import { configQO } from "./configQO";
 import { registryQO } from "./registryQO";
 import governanceQO from "./governanceQO";
@@ -58,7 +58,6 @@ function dominionQO({
           queryClient,
         })
       );
-      await Proposal.fetch({ sdk, id: governance.proposalIds[0] });
       const registry = await queryClient.fetchQuery(
         registryQO({ network: network as Network, queryClient })
       );

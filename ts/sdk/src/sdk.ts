@@ -1,6 +1,6 @@
 import {SuiClient} from '@mysten/sui.js/client';
 import {Commander} from './Commander';
-import {CoinCommander} from './CoinCommander';
+import {CoinCommander} from './commanders/CoinCommander';
 
 export type Config = {
   dominion: {

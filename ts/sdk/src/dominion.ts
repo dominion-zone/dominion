@@ -124,12 +124,9 @@ export class Dominion {
     txb: TransactionBlock;
   }) {
     return txb.moveCall({
-      target: `${sdk.config.dominion.contract}::command::new_enable_commander_command`,
-      arguments: [
-        txb.object(dominion),
-        txb.object(targetDominion),
-        txb.pure(commander), // todo
-      ],
+      target: `${sdk.config.dominion.contract}::dominion_admin_commander::new_enable_commander_command`,
+      arguments: [txb.object(dominion), txb.object(targetDominion)],
+      typeArguments: [commander],
     });
   }
 

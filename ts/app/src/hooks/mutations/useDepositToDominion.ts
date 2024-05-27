@@ -6,6 +6,7 @@ import { CoinStruct } from "@mysten/sui.js/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { CoinCommander } from "@dominion.zone/dominion-sdk";
 import useDominionSdk from "../useDominionSdk";
+import { useSnackbar } from "notistack";
 
 export type DepositToDominionParams = {
   wallet: string;
@@ -31,6 +32,7 @@ function useDepositToDominion({
     },
   });
   const dominionSdk = useDominionSdk({ network });
+  const { enqueueSnackbar } = useSnackbar();
 
   const mutateAsync = useCallback(
     async (
@@ -90,9 +92,13 @@ function useDepositToDominion({
       }
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
+      enqueueSnackbar(`Deposited ${amount} ${coinType} to dominion`, {
+        variant: "success",
+      });
+      return r;
     },
-    [dominionId, dominionSdk, mutation]
+    [dominionId, dominionSdk, enqueueSnackbar, mutation]
   );
 
   return useMemo(

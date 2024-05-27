@@ -52,7 +52,14 @@ export abstract class Command {
   }) {
     const c = sdk.commanderByType.get('0x' + commander.fields.name);
     if (!c) {
-      throw new Error(`Commander not found: 0x${commander.fields.name}`);
+      return new UnknownCommnad(
+        sdk,
+        id,
+        '0x' + commander.fields.name,
+        dominion_id,
+        execution_error,
+        is_executed
+      );
     }
     return c.parseCommand({
       sdk,
@@ -61,5 +68,26 @@ export abstract class Command {
       executionError: execution_error,
       isExecuted: is_executed,
     });
+  }
+}
+
+export class UnknownCommnad extends Command {
+  get action(): object {
+    return {};
+  }
+
+  withExecute(): Promise<TransactionObjectInput> {
+    throw new Error('Method not implemented.');
+  }
+
+  public constructor(
+    sdk: DominionSDK,
+    id: string,
+    commanderType: string,
+    dominionId: string,
+    executionError: string | null,
+    isExecuted: boolean
+  ) {
+    super(sdk, id, commanderType, dominionId, executionError, isExecuted);
   }
 }

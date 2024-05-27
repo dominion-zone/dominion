@@ -1,4 +1,4 @@
-import { Button, Container, TextField } from "@mui/material";
+import { Button, Container, Stack, TextField, Typography } from "@mui/material";
 import { createFileRoute } from "@tanstack/react-router";
 import CoinTypeSelector from "../../components/CoinTypeSelector";
 import { z } from "zod";
@@ -58,7 +58,7 @@ function CreateGovernance() {
   return (
     <Container>
       <DominionIndexHeader tab="create" />
-      <h3>Create governance</h3>
+      <Typography variant="h3">Create dominion</Typography>
       <Formik
         initialValues={{
           name: "",
@@ -73,79 +73,81 @@ function CreateGovernance() {
       >
         {({ values, handleChange, handleBlur, setFieldValue }) => (
           <Form>
-            <div>
-              <TextField
-                name="name"
-                label="Name"
-                value={values.name}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <CoinTypeSelector
-                network={network}
-                wallet={wallet}
-                value={values.coinType}
-                onChange={(value) => setFieldValue("coinType", value || "")}
-              />
-            </div>
-            <div>
-              <TextField
-                name="urlName"
-                label="Url name"
-                value={values.urlName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <TextField
-                name="link"
-                label="Link"
-                value={values.link}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <TextField
-                type="number"
-                name="minWeightToCreateProposal"
-                label="Min weight to create proposal"
-                value={values.minWeightToCreateProposal}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <TextField
-                type="number"
-                name="voteThreshold"
-                label="Vote threshold"
-                value={values.voteThreshold}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <TextField
-                type="number"
-                name="maxVotingTime"
-                label="Max voting time minutes"
-                value={values.maxVotingTime}
-                onChange={handleChange}
-                onBlur={handleBlur}
-              />
-            </div>
-            <div>
-              <Button
-                type="submit"
-                disabled={!currentAccount || createGovernance.isPending}
-              >
-                Create
-              </Button>
-            </div>
+            <Stack spacing={1}>
+              <div>
+                <TextField
+                  name="name"
+                  label="Name"
+                  value={values.name}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <CoinTypeSelector
+                  network={network}
+                  wallet={wallet}
+                  value={values.coinType}
+                  onChange={(value) => setFieldValue("coinType", value || "")}
+                />
+              </div>
+              <div>
+                <TextField
+                  name="urlName"
+                  label="Url name"
+                  value={values.urlName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <TextField
+                  name="link"
+                  label="Link"
+                  value={values.link}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <TextField
+                  type="number"
+                  name="minWeightToCreateProposal"
+                  label="Min weight to create proposal"
+                  value={values.minWeightToCreateProposal}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <TextField
+                  type="number"
+                  name="voteThreshold"
+                  label="Vote threshold"
+                  value={values.voteThreshold}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <TextField
+                  type="number"
+                  name="maxVotingTime"
+                  label="Max voting time minutes"
+                  value={values.maxVotingTime}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div>
+                <Button
+                  type="submit"
+                  disabled={!currentAccount || createGovernance.isPending}
+                >
+                  Create
+                </Button>
+              </div>
+            </Stack>
           </Form>
         )}
       </Formik>

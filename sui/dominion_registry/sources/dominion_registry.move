@@ -2,12 +2,13 @@
 module dominion_registry::dominion_registry {
     use std::string::String;
     use dominion::dominion::Dominion;
+    use sui::event;
 
     const EInvalidOwnerCap: u64 = 0;
     const EDominionAlreadyPresent: u64 = 1;
     const EUrlNameAlreadyPresent: u64 = 2;
 
-    public struct Entry has store, drop {
+    public struct Entry has store, copy, drop {
         dominion_id: ID,
         url_name: String,
     }
@@ -22,6 +23,11 @@ module dominion_registry::dominion_registry {
     public struct OwnerCap has key, store {
         id: UID,
         registry_id: ID,
+    }
+
+    public struct EntryInserted has copy, drop {
+        index: u64,
+        entry: Entry,
     }
 
     public fun new(
@@ -120,13 +126,22 @@ module dominion_registry::dominion_registry {
             i = i + 1;
         };
 
+        let entry = Entry {
+            dominion_id,
+            url_name,
+        };
+
         self.entries.insert(
-            Entry {
-                dominion_id,
-                url_name,
-            },
+            entry,
             index
         );
+
+        event::emit(
+            EntryInserted {
+                entry,
+                index,
+            }
+        )
     }
 
     public fun update_entry(

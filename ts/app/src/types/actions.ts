@@ -1,4 +1,4 @@
-export type CommanderAction =
+export type ToggleCommanderAction =
   | {
       type: "enableCommander";
       commander: string;
@@ -15,4 +15,4 @@ export type TransferCoinAction = {
   amount: string;
 };
 
-export type Action = CommanderAction | TransferCoinAction;
+export type Action = ToggleCommanderAction | TransferCoinAction;

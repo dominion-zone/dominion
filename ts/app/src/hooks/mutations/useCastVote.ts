@@ -9,6 +9,7 @@ import userMembersQO from "../../queryOptions/user/userMembersQO";
 import { Member } from "@dominion.zone/dominion-sdk";
 import proposalQO from "../../queryOptions/proposalQO";
 import governanceQO from "../../queryOptions/governanceQO";
+import { useSnackbar } from "notistack";
 
 export type CastVoteParams = {
   wallet: string;
@@ -31,6 +32,7 @@ function useCastVote({
   const config = useSuspenseConfig({ network });
   const dominionSdk = useDominionSdk({ network });
   const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const mutateAsync = useCallback(
     async (
@@ -105,14 +107,21 @@ function useCastVote({
 
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      console.log(txb.serialize())
-      const r = await dominionSdk.sui.dryRunTransactionBlock({ transactionBlock: await txb.build({
-        client: dominionSdk.sui,
-      }) });
-      console.log(r);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
+      enqueueSnackbar(`Proposal ${proposal.id} vote cast successfully`, {
+        variant: "success",
+      });
+      return r;
     },
-    [config.testCoin, dominionSdk, mutation, network, proposalId, queryClient]
+    [
+      config.testCoin,
+      dominionSdk,
+      enqueueSnackbar,
+      mutation,
+      network,
+      proposalId,
+      queryClient,
+    ]
   );
 
   return useMemo(

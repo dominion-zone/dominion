@@ -5,11 +5,12 @@ import {
   TransactionObjectInput,
   TransactionResult,
 } from '@mysten/sui.js/transactions';
-import {DominionSDK} from './sdk';
-import {Commander} from './Commander';
-import {Command} from './command';
+import {DominionSDK} from '../sdk';
+import {Commander} from '../Commander';
+import {Command} from '../command';
 
-export type CoinCommandAction = {
+export type CoinCommandAction = TransferCoinAction;
+export type TransferCoinAction = {
   type: 'transferCoin';
   coinType: string;
   recipient: string;

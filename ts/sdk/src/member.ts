@@ -133,7 +133,6 @@ export class Member {
       },
     },
   }: MemberData): Member {
-    console.log(votes);
     return new Member(
       objectId,
       balance,

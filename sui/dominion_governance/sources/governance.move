@@ -5,6 +5,7 @@ module dominion_governance::governance {
     use std::string::String;
     use sui::url::Url;
     use sui::bag::{Self, Bag};
+    use sui::event;
 
     const EInvalidAdminCap: u64 = 0;
     const EInvalidVetoCap: u64 = 1;
@@ -40,6 +41,16 @@ module dominion_governance::governance {
         proposal_ids: vector<ID>,
     }
 
+    public struct GovernanceCreated has copy, drop {
+        governance_id: ID,
+        dominion_id: ID,
+        name: String,
+        link: Url,
+        min_weight_to_create_proposal: u64,
+        vote_threshold: u64,
+        max_voting_time: u64,
+    }
+
     public fun new<T>(
         dominion: &mut Dominion,
         dominion_owner_cap: DominionOwnerCap,
@@ -54,6 +65,7 @@ module dominion_governance::governance {
         let veto_cap_uid = object::new(ctx);
         let self_uid = object::new(ctx);
         let governance_id = self_uid.to_inner();
+        let dominion_id = object::id(dominion);
 
         dominion.set_owner_address(
             &dominion_owner_cap,
@@ -88,6 +100,18 @@ module dominion_governance::governance {
             id: veto_cap_uid,
             governance_id,
         };
+
+        event::emit(
+            GovernanceCreated {
+                governance_id,
+                dominion_id,
+                name,
+                link,
+                min_weight_to_create_proposal,
+                vote_threshold,
+                max_voting_time,
+            }
+        );
 
         (self, admin_cap, veto_cap)
     }

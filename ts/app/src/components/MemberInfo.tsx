@@ -28,11 +28,11 @@ function MemberInfo({
   );
 
   if (!member) {
-    return <Typography variant="h4">Not a member</Typography>;
+    return <Typography>Not a member</Typography>;
   }
   return (
     <div>
-      <Typography variant="h4">Voting power: {member.balance}</Typography>
+      <Typography>Voting power: {member.balance}</Typography>
       <Formik
         initialValues={{ amount: member.balance.toString() }}
         onSubmit={handleSubmit}

@@ -8,6 +8,8 @@ import { Dominion, Member } from "@dominion.zone/dominion-sdk";
 import { Action } from "../../types/actions";
 import useSuspenseMember from "../queries/useSuspenseMember";
 import useSuspenseDominion from "../queries/useSuspenseDominion";
+import { useSnackbar } from "notistack";
+import { useNavigate } from "@tanstack/react-router";
 
 export type CreateProposalParams = {
   name: string;
@@ -33,6 +35,8 @@ function useCreateProposal({
 
   const member = useSuspenseMember({ network, dominionId, wallet });
   const { dominion, governance } = useSuspenseDominion({ network, dominionId });
+  const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   const mutateAsync = useCallback(
     async (
@@ -42,6 +46,7 @@ function useCreateProposal({
       if (!wallet) {
         throw new Error("Wallet is required");
       }
+
       const txb = new TransactionBlock();
 
       let memberArg;
@@ -153,17 +158,40 @@ function useCreateProposal({
 
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync(
+        { transactionBlock: txb, options: { showEvents: true } },
+        options
+      );
+      const { proposal_id } = r.events!.find(
+        (e) =>
+          e.type ===
+          `${dominionSdk.config.governance.contract}::proposal::ProposalCreated`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      )!.parsedJson as any;
+      enqueueSnackbar(`Proposal ${proposal_id} created successfully`, {
+        variant: "success",
+      });
+      navigate({
+        to: "/app/proposal/$proposalId",
+        params: { proposalId: proposal_id },
+        search: { network, wallet },
+      });
+      return {
+        proposalId: proposal_id,
+      };
     },
     [
       config.dominion.contract,
       config.testCoin,
       dominion.id,
       dominionSdk,
+      enqueueSnackbar,
       governance.coinType,
       governance.id,
       member,
       mutation,
+      navigate,
+      network,
       wallet,
     ]
   );

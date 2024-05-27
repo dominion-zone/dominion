@@ -6,6 +6,7 @@ import { TransactionBlock } from "@mysten/sui.js/transactions";
 import useDominionSdk from "../useDominionSdk";
 import useSuspenseMember from "../queries/useSuspenseMember";
 import useSuspenseDominion from "../queries/useSuspenseDominion";
+import { useSnackbar } from "notistack";
 
 export type WithdrawParams = {
   amount: bigint;
@@ -29,6 +30,7 @@ function useWithdraw({
 
   const member = useSuspenseMember({ network, dominionId, wallet });
   const { governance } = useSuspenseDominion({ network, dominionId });
+  const { enqueueSnackbar } = useSnackbar();
 
   const mutateAsync = useCallback(
     async (
@@ -41,6 +43,7 @@ function useWithdraw({
       if (!member) {
         throw new Error("Member is required");
       }
+
       const txb = new TransactionBlock();
 
       Member.withWithdraw({
@@ -52,9 +55,23 @@ function useWithdraw({
       });
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
-      return await mutation.mutateAsync({ transactionBlock: txb }, options);
+      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
+      enqueueSnackbar(
+        `Withdrawing ${amount} of ${governance.coinType} successfully`,
+        {
+          variant: "success",
+        }
+      );
+      return r;
     },
-    [dominionSdk, governance.coinType, member, mutation, wallet]
+    [
+      dominionSdk,
+      enqueueSnackbar,
+      governance.coinType,
+      member,
+      mutation,
+      wallet,
+    ]
   );
 
   return useMemo(

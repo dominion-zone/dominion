@@ -3,11 +3,12 @@ import { IconButton } from "@mui/material";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 
-function UpButton({to}: {to: string}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function UpButton({to, params}: {to: string; params?: any}) {
   const navigate = useNavigate();
   const goUp = useCallback(() => {
-    navigate({ to, });
-  }, [navigate, to]);
+    navigate({ to, params });
+  }, [navigate, params, to]);
   return (
     <IconButton onClick={goUp}>
       <ArrowUpwardIcon />
