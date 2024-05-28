@@ -94,6 +94,9 @@ function useLockTokens({
         coin,
         txb,
       });
+      if (!member) {
+        txb.transferObjects([memberArg], wallet);
+      }
       txb.setGasBudget(2000000000);
       txb.setSenderIfNotSet(wallet);
       const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
