@@ -1,62 +1,98 @@
-import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
-// import { useQueryClient } from "@tanstack/react-query";
+import {
+  useCurrentAccount,
+  useCurrentWallet,
+  useSuiClient,
+} from "@mysten/dapp-kit";
 import { Network } from "../../config/network";
-import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import useSuspenseConfig from "../useSuspenseConfig";
-import { useSnackbar } from "notistack";
+import {
+  UseMutationResult,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { SuiSignAndExecuteTransactionBlockOutput } from "@mysten/wallet-standard";
+import {
+  TransactionOptions,
+  UseSignAndExecuteTransactionOptions,
+  signAndExecuteTransactionBlock,
+} from "./utils";
 
-export type AirdropParams = {
-  wallet: string;
+export type AirdropParams = TransactionOptions & {
   amount: bigint;
 };
 
-function useAirdrop({ network }: { network: Network }) {
-  // const queryClient = useQueryClient();
+export type AirdropResult = {
+  tx: SuiSignAndExecuteTransactionBlockOutput;
+};
 
-  const mutation = useSignAndExecuteTransactionBlock({
-    mutationKey: [network, "airdrop"],
-    onSuccess: () => {},
-  });
+export type UseAirdropOptions = UseSignAndExecuteTransactionOptions<
+  AirdropResult,
+  Error,
+  AirdropParams
+> & {
+  network: Network;
+  wallet: string;
+};
 
+function useAirdrop({
+  network,
+  wallet,
+  onTransactionSuccess,
+  onTransactionError,
+  ...mutationOptions
+}: UseAirdropOptions): UseMutationResult<AirdropResult, Error, AirdropParams> {
+  const { currentWallet } = useCurrentWallet();
+  const currentAccount = useCurrentAccount();
+  const client = useSuiClient();
   const config = useSuspenseConfig({ network });
-  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
 
-  const mutateAsync = useCallback(
-    async (
-      { wallet, amount }: AirdropParams,
-      options?: Parameters<typeof mutation.mutateAsync>[1]
-    ) => {
-      const txb = new TransactionBlock();
-      const coin = txb.moveCall({
+  return useMutation({
+    mutationKey: [network, "airdrop", wallet],
+    async mutationFn({ amount, ...options }) {
+      const transactionBlock = new TransactionBlock();
+      const coin = transactionBlock.moveCall({
         target: `${config.testCoin!.contract}::test_coin::mint_coin`,
-        arguments: [txb.pure(amount), txb.object(config.testCoin!.control)],
+        arguments: [
+          transactionBlock.pure(amount),
+          transactionBlock.object(config.testCoin!.control),
+        ],
       });
-      txb.transferObjects([txb.object(coin)], wallet);
-      txb.setGasBudget(2000000000);
-      txb.setSenderIfNotSet(wallet);
-      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
-      enqueueSnackbar(`Airdrop of ${amount} test tokens successful`, {
-        variant: "success",
-      });
-      return r;
-    },
-    [config.testCoin, enqueueSnackbar, mutation]
-  );
+      transactionBlock.transferObjects([transactionBlock.object(coin)], wallet);
+      transactionBlock.setGasBudget(2000000000);
+      transactionBlock.setSenderIfNotSet(wallet);
 
-  return useMemo(
-    () => ({
-      ...mutation,
-      mutate(
-        params: AirdropParams,
-        options?: Parameters<typeof mutation.mutate>[1]
-      ) {
-        mutateAsync(params, options);
-      },
-      mutateAsync,
-    }),
-    [mutateAsync, mutation]
-  );
+      const tx = await signAndExecuteTransactionBlock({
+        client,
+        currentWallet,
+        currentAccount,
+        transactionBlock,
+        ...options,
+        onTransactionSuccess(tx) {
+          queryClient.invalidateQueries({
+            queryKey: [network, "user", wallet, "coinBalance", `${config.testCoin!.contract}::test_coin::TEST_COIN`]
+          });
+          queryClient.invalidateQueries({
+            queryKey: [network, "user", wallet, "allCoinBalances"]
+          });
+          if (onTransactionSuccess) {
+            onTransactionSuccess({ tx }, { amount }, undefined);
+          }
+        },
+        onTransactionError(tx, error) {
+          if (onTransactionError) {
+            onTransactionError({ tx }, error, { amount }, undefined);
+          }
+        },
+      });
+
+      return {
+        tx,
+      };
+    },
+    ...mutationOptions,
+  });
 }
 
 export default useAirdrop;

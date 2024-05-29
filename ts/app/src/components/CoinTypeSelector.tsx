@@ -1,6 +1,6 @@
 import { Autocomplete, TextField } from "@mui/material";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import userCoinTypesQO from "../queryOptions/user/userCoinTypesQO";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import allCoinBalancesQO from "../queryOptions/user/allCoinBalancesQO";
 import { Network } from "../config/network";
 import { useMemo } from "react";
 import useSuspenseConfig from "../hooks/useSuspenseConfig";
@@ -18,8 +18,9 @@ function CoinTypeSelector({
   value: string;
   onChange: (e: string | null) => void;
 }) {
+  const queryClient = useQueryClient();
   const { data: coinTypes } = useSuspenseQuery(
-    userCoinTypesQO({ network, wallet })
+    allCoinBalancesQO({ network, wallet, queryClient })
   );
 
   const config = useSuspenseConfig({ network });
@@ -30,9 +31,11 @@ function CoinTypeSelector({
 
     return (testCoinType ? [testCoinType] : []).concat(
       [suiType],
-      coinTypes.filter(
-        (coinType) => coinType !== suiType && coinType !== testCoinType
-      )
+      coinTypes
+        .filter(
+          ({ coinType }) => coinType !== suiType && coinType !== testCoinType
+        )
+        .map(({ coinType }) => coinType)
     );
   }, [coinTypes, config.testCoin]);
 

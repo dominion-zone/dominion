@@ -13,7 +13,7 @@ function MemberInfo({
 }: {
   network: Network;
   dominionId: string;
-  wallet?: string;
+  wallet: string;
 }) {
   const currentAccount = useCurrentAccount();
   const member = useSuspenseMember({ network, dominionId, wallet });
@@ -33,6 +33,7 @@ function MemberInfo({
   return (
     <div>
       <Typography>Voting power: {member.balance}</Typography>
+      <br/>
       <Formik
         initialValues={{ amount: member.balance.toString() }}
         onSubmit={handleSubmit}

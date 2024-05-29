@@ -10,7 +10,7 @@ function useSuspenseMember({
 }: {
   network: Network;
   dominionId: string;
-  wallet?: string;
+  wallet: string;
 }) {
   const queryClient = useQueryClient();
   const { data: members } = useSuspenseQuery(

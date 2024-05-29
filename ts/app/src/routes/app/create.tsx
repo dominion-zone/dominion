@@ -2,7 +2,7 @@ import { Button, Container, Stack, TextField, Typography } from "@mui/material";
 import { createFileRoute } from "@tanstack/react-router";
 import CoinTypeSelector from "../../components/CoinTypeSelector";
 import { z } from "zod";
-import userCoinTypesQO from "../../queryOptions/user/userCoinTypesQO";
+import allCoinBalancesQO from "../../queryOptions/user/allCoinBalancesQO";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useCallback } from "react";
 import useCreateGovernance from "../../hooks/mutations/useCreateGovernance";
@@ -17,7 +17,9 @@ export const Route = createFileRoute("/app/create")({
   }),
   loaderDeps: ({ search: { network, wallet } }) => ({ network, wallet }),
   loader: ({ deps: { network, wallet }, context: { queryClient } }) =>
-    queryClient.ensureQueryData(userCoinTypesQO({ network, wallet })),
+    queryClient.ensureQueryData(
+      allCoinBalancesQO({ network, wallet, queryClient })
+    ),
 });
 
 function CreateGovernance() {
