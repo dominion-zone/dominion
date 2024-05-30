@@ -16,6 +16,10 @@ The Registry contract plays a pivotal role by managing the registration of vario
 ### Test Coin
 Designed for use on the testnet, this contract includes a coin that any user can mint. It serves as a tool for testing the governance processes without using real assets, providing a safe environment for development and experimentation.
 
+## Understanding the Product Structure
+
+For a visual representation of how these contracts interact and are structured within **Dominion**, please refer to the diagram available here: [Structure Diagram](./dominion-structure.png). This diagram provides a detailed overview of the contract architecture, helping you better understand the integral parts of the product.
+
 ## TypeScript Directory
 
 ### SDK
