@@ -2,9 +2,8 @@ import { Tab, Tabs, Toolbar, Typography } from "@mui/material";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { SyntheticEvent, useCallback } from "react";
 import UpButton from "./UpButton";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import dominionQO from "../queryOptions/dominionQO";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
 
 export type DominionHeaderTab =
   | "info"
@@ -21,11 +20,8 @@ function DominionHeader({ tab }: DominionHeaderProps) {
   const navigate = useNavigate();
   const { network, wallet } = useSearch({ from: "/app/dominion/$dominionId" });
   const { dominionId } = useParams({ from: "/app/dominion/$dominionId" });
-  const queryClient = useQueryClient();
 
-  const {
-    data: { governance },
-  } = useSuspenseQuery(dominionQO({ network, queryClient, dominionId }));
+  const { governance } = useSuspenseDominion({ network, dominionId })
 
   const handleChange = useCallback(
     (_e: SyntheticEvent, newValue: DominionHeaderTab) => {
@@ -48,7 +44,7 @@ function DominionHeader({ tab }: DominionHeaderProps) {
           navigate({
             to: "/app/dominion/$dominionId/createProposal",
             params: { dominionId },
-            search: { network, wallet },
+            search: { network, wallet: wallet! },
           });
           break;
         case "settings":

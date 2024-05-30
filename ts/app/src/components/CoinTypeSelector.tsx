@@ -4,8 +4,8 @@ import allCoinBalancesQO from "../queryOptions/user/allCoinBalancesQO";
 import { Network } from "../config/network";
 import { useMemo } from "react";
 import useSuspenseConfig from "../hooks/useSuspenseConfig";
-
-const suiType = "0x2::sui::SUI";
+import { normalizeStructTag } from "@mysten/sui.js/utils";
+import { SUI_COIN_TYPE } from "../consts";
 
 function CoinTypeSelector({
   network,
@@ -28,14 +28,14 @@ function CoinTypeSelector({
   const improvedCoinTypes = useMemo(() => {
     const testCoinType: string | undefined =
       config.testCoin && `${config.testCoin.contract}::test_coin::TEST_COIN`;
-
     return (testCoinType ? [testCoinType] : []).concat(
-      [suiType],
+      [SUI_COIN_TYPE],
       coinTypes
         .filter(
-          ({ coinType }) => coinType !== suiType && coinType !== testCoinType
+          ({ coinType }) =>
+            coinType !== SUI_COIN_TYPE && coinType !== testCoinType
         )
-        .map(({ coinType }) => coinType)
+        .map(({ coinType }) => normalizeStructTag(coinType))
     );
   }, [coinTypes, config.testCoin]);
 
@@ -44,7 +44,12 @@ function CoinTypeSelector({
       freeSolo={true}
       options={improvedCoinTypes}
       renderInput={(params) => (
-        <TextField name="coinType" {...params} label="Coin type" />
+        <TextField
+          name="coinType"
+          {...params}
+          label="Coin type"
+          sx={{ minWidth: "50em" }}
+        />
       )}
       value={value}
       onChange={(_, value) => onChange(value)}

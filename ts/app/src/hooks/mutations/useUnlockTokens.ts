@@ -3,7 +3,6 @@ import { Network } from "../../config/network";
 import { Member } from "@dominion.zone/dominion-sdk";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import useDominionSdk from "../useDominionSdk";
-import { CoinStruct } from "@mysten/sui.js/client";
 import useSuspenseMember from "../queries/useSuspenseMember";
 import useSuspenseDominion from "../queries/useSuspenseDominion";
 import { SuiSignAndExecuteTransactionBlockOutput } from "@mysten/wallet-standard";
@@ -13,34 +12,34 @@ import {
   signAndExecuteTransactionBlock,
 } from "./utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { SUI_COIN_TYPE } from "../../consts";
 
-export type LockTokensParams = TransactionOptions & {
+export type UnlockTokensParams = TransactionOptions & {
   amount: bigint;
 };
 
-export type LockTokensResult = {
+export type UnlockTokensResult = {
   tx: SuiSignAndExecuteTransactionBlockOutput;
 };
 
-export type UseLockTokensOptions = UseSignAndExecuteTransactionOptions<
-  LockTokensResult,
+export type UseUnlockTokensOptions = UseSignAndExecuteTransactionOptions<
+  UnlockTokensResult,
   Error,
-  LockTokensParams
+  UnlockTokensParams
 > & {
   network: Network;
   dominionId: string;
   wallet: string;
 };
 
-function useLockTokens({
+
+function useUnlockTokens({
   network,
   dominionId,
   wallet,
   onTransactionSuccess,
   onTransactionError,
   ...mutationOptions
-}: UseLockTokensOptions) {
+}: UseUnlockTokensOptions) {
   const { currentWallet } = useCurrentWallet();
   const currentAccount = useCurrentAccount();
   const dominionSdk = useDominionSdk({ network });
@@ -49,66 +48,21 @@ function useLockTokens({
   const { governance } = useSuspenseDominion({ network, dominionId });
 
   return useMutation({
-    mutationKey: [network, "lockTokens", wallet, dominionId],
+    mutationKey: [network, "withdraw", dominionId],
     async mutationFn({ amount, ...options }) {
-      const coins: CoinStruct[] = [];
-      let cursor = null;
-      for (;;) {
-        const { data, hasNextPage, nextCursor } =
-          await dominionSdk.sui.getCoins({
-            owner: wallet,
-            coinType: governance.coinType,
-            cursor,
-          });
-        coins.push(...data);
-        if (!hasNextPage) {
-          break;
-        }
-        cursor = nextCursor;
-      }
-      if (coins.length === 0) {
-        throw new Error(`You have no ${governance.coinType} coins`);
+      if (!member) {
+        throw new Error("Member is required");
       }
 
       const transactionBlock = new TransactionBlock();
 
-      let memberArg;
-
-      if (member) {
-        memberArg = transactionBlock.object(member.id);
-      } else {
-        memberArg = transactionBlock.object(
-          Member.withNew({
-            sdk: dominionSdk,
-            txb: transactionBlock,
-            coinType: governance.coinType,
-            governance: transactionBlock.object(governance.id),
-          })
-        );
-      }
-      let source = transactionBlock.gas;
-      if (governance.coinType !== SUI_COIN_TYPE) {
-        source = transactionBlock.object(coins[0].coinObjectId);
-        if (coins.length > 1) {
-          transactionBlock.mergeCoins(
-            source,
-            coins
-              .slice(1)
-              .map(({ coinObjectId }) => transactionBlock.object(coinObjectId))
-          );
-        }
-      }
-      const [coin] = transactionBlock.splitCoins(source, [amount]);
-      Member.withDeposit({
+      Member.withWithdraw({
         sdk: dominionSdk,
-        member: memberArg,
+        member: transactionBlock.object(member.id),
         coinType: governance.coinType,
-        coin,
+        amount,
         txb: transactionBlock,
       });
-      if (!member) {
-        transactionBlock.transferObjects([memberArg], wallet);
-      }
       transactionBlock.setGasBudget(2000000000);
       transactionBlock.setSenderIfNotSet(wallet);
 
@@ -153,4 +107,4 @@ function useLockTokens({
   });
 }
 
-export default useLockTokens;
+export default useUnlockTokens;

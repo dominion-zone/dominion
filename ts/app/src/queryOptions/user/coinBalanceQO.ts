@@ -1,6 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 import { Network, networkConfig } from "../../config/network";
 import { CoinBalance, SuiClient } from "@mysten/sui.js/client";
+import { normalizeStructTag } from "@mysten/sui.js/utils";
 
 function coinBalanceQO({
   network,
@@ -13,6 +14,7 @@ function coinBalanceQO({
   coinType: string;
   queryClient: QueryClient;
 }) {
+  coinType = normalizeStructTag(coinType);
   return queryOptions({
     queryKey: [network, "user", wallet, "coinBalance", coinType],
     queryFn: async ({ queryKey: [network, , wallet, , coinType] }) => {
@@ -21,6 +23,7 @@ function coinBalanceQO({
         owner: wallet,
         coinType,
       });
+      r.coinType = coinType;
       queryClient.setQueryData(
         [network, "user", wallet, "allCoinBalances"],
         (balances: CoinBalance[]) => {

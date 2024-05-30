@@ -7,8 +7,9 @@ export type TransferCoinActionInfoProps = {
 
 function TransferCoinActionInfo({ action }: TransferCoinActionInfoProps) {
   return (
-    <Card>
+    <Card sx={{padding: 1}}>
       <Typography variant="h6">Transfer Coin</Typography>
+      <Typography>Type: {action.coinType}</Typography>
       <Typography>Amount: {action.amount.toString()}</Typography>
       <Typography>Recipient: {action.recipient}</Typography>
     </Card>

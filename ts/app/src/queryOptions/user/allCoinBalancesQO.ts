@@ -1,6 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 import { Network, networkConfig } from "../../config/network";
 import { SuiClient } from "@mysten/sui.js/client";
+import { normalizeStructTag } from "@mysten/sui.js/utils";
 
 function allCoinBalancesQO({
   network,
@@ -19,6 +20,7 @@ function allCoinBalancesQO({
         owner: wallet,
       });
       for (const coin of balances) {
+        coin.coinType = normalizeStructTag(coin.coinType);
         queryClient.setQueryData(
           [network, "user", wallet, "coinBalance", coin.coinType],
           coin

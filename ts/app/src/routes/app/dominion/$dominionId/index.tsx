@@ -10,36 +10,47 @@ import UnknownAssetItem from "../../../../components/UnknownAssetItem";
 import DepositTokenToDominionButton from "../../../../components/DepositTokenToDominionButton";
 import TokenAssetItem from "../../../../components/TokenAssetItem";
 import useSuspenseConfig from "../../../../hooks/useSuspenseConfig";
+import { registryQO } from "../../../../queryOptions/registryQO";
+import useSuspenseDominion from "../../../../hooks/queries/useSuspenseDominion";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/")({
   component: DominionInfo,
   loaderDeps: ({ search: { network } }) => ({ network }),
-  loader: ({
+  async loader({
     deps: { network },
     context: { queryClient },
     params: { dominionId },
-  }) =>
-    Promise.all([
+  }) {
+    const registry = await queryClient.ensureQueryData(
+      registryQO({ network, queryClient })
+    );
+    if (!dominionId.startsWith("0x")) {
+      const id = registry.findDominionId(dominionId);
+      if (!id) {
+        throw new Error(`Dominion url name not found: ${dominionId}`);
+      }
+      dominionId = id;
+    }
+    await Promise.all([
+      queryClient.ensureQueryData(
+        dominionQO({ network, queryClient, dominionId })
+      ),
       queryClient.ensureQueryData(
         dominionAssetsQO({ network, dominionId, queryClient })
       ),
-      queryClient.ensureQueryData(
-        dominionQO({ network, dominionId, queryClient })
-      ),
-    ]),
+    ]);
+  },
 });
 
 function DominionInfo() {
   const { network, wallet } = Route.useSearch();
   const { dominionId } = Route.useParams();
   const queryClient = useQueryClient();
-  const {
-    data: { dominion, governance },
-  } = useSuspenseQuery(dominionQO({ network, dominionId, queryClient }));
+  const { dominion, governance } = useSuspenseDominion({ network, dominionId });
 
   const {
     data: { coins, dominionAdmins, governanceAdmins, unknown },
-  } = useSuspenseQuery(dominionAssetsQO({ network, dominionId, queryClient }));
+  } = useSuspenseQuery(dominionAssetsQO({ network, dominionId: dominion.id, queryClient }));
 
   const config = useSuspenseConfig({ network });
 
@@ -72,12 +83,14 @@ function DominionInfo() {
               />
             ))}
           </List>
-          <DepositTokenToDominionButton
-            network={network}
-            wallet={wallet}
-            dominionId={dominion.id}
-            disabled={!hasCoinCommander}
-          />
+          {wallet && (
+            <DepositTokenToDominionButton
+              network={network}
+              wallet={wallet}
+              dominionId={dominion.id}
+              disabled={!hasCoinCommander}
+            />
+          )}
         </Card>
 
         {dominionAdmins.length > 0 && (

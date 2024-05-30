@@ -7,10 +7,9 @@ import {
 } from "@mui/material";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import DominionHeader from "../../../../components/DominionHeader";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import dominionQO from "../../../../queryOptions/dominionQO";
 import useSuspenseConfig from "../../../../hooks/useSuspenseConfig";
 import { ChangeEvent, useCallback } from "react";
+import useSuspenseDominion from "../../../../hooks/queries/useSuspenseDominion";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/settings")({
   component: Settings,
@@ -19,10 +18,7 @@ export const Route = createFileRoute("/app/dominion/$dominionId/settings")({
 function Settings() {
   const { network, wallet } = Route.useSearch();
   const { dominionId } = Route.useParams();
-  const queryClient = useQueryClient();
-  const {
-    data: { dominion },
-  } = useSuspenseQuery(dominionQO({ network, dominionId, queryClient }));
+  const { dominion } = useSuspenseDominion({ network, dominionId });
 
   const config = useSuspenseConfig({ network });
 
@@ -46,7 +42,7 @@ function Settings() {
         to: "/app/dominion/$dominionId/createProposal",
         search: {
           network,
-          wallet,
+          wallet: wallet!,
           actions: [
             {
               type: value ? "enableCommander" : "disableCommander",
@@ -68,7 +64,7 @@ function Settings() {
         to: "/app/dominion/$dominionId/createProposal",
         search: {
           network,
-          wallet,
+          wallet: wallet!,
           actions: [
             {
               type: value ? "enableCommander" : "disableCommander",
@@ -90,7 +86,7 @@ function Settings() {
         to: "/app/dominion/$dominionId/createProposal",
         search: {
           network,
-          wallet,
+          wallet: wallet!,
           actions: [
             {
               type: value ? "enableCommander" : "disableCommander",

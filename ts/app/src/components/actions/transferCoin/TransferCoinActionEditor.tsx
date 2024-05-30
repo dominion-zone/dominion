@@ -4,6 +4,7 @@ import { Form, Formik } from "formik";
 import { Button, TextField, Typography } from "@mui/material";
 import useSuspenseDominion from "../../../hooks/queries/useSuspenseDominion";
 import CoinTypeSelector from "../../CoinTypeSelector";
+import { SUI_COIN_TYPE } from "../../../consts";
 
 function TransferCoinActionEditor({
   action,
@@ -21,7 +22,7 @@ function TransferCoinActionEditor({
   return (
     <Formik
       initialValues={{
-        coinType: "0x2::sui::SUI",
+        coinType: SUI_COIN_TYPE,
         recipient: action.recipient,
         amount: action.amount,
       }}

@@ -58,7 +58,7 @@ export class Vote {
 export class Member {
   public constructor(
     public readonly id: string,
-    public balance: string,
+    public balance: bigint,
     public governanceId: string,
     public proposalOwnerCaps: [],
     public votes: Vote[]
@@ -135,7 +135,7 @@ export class Member {
   }: MemberData): Member {
     return new Member(
       objectId,
-      balance,
+      BigInt(balance),
       governanceId,
       proposalOwnerCaps,
       votes.map(Vote.fromData)

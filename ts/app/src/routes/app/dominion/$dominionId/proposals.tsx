@@ -4,18 +4,31 @@ import DominionHeader from "../../../../components/DominionHeader";
 import dominionProposalsQO from "../../../../queryOptions/dominionProposalsQO";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import ProposalListItem from "../../../../components/ProposalListItem";
+import { registryQO } from "../../../../queryOptions/registryQO";
+import useSuspenseDominion from "../../../../hooks/queries/useSuspenseDominion";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/proposals")({
   component: Proposals,
   loaderDeps: ({ search: { network } }) => ({ network }),
-  loader: ({
+  async loader({
     deps: { network },
     context: { queryClient },
     params: { dominionId },
-  }) =>
+  }) {
+    const registry = await queryClient.ensureQueryData(
+      registryQO({ network, queryClient })
+    );
+    if (!dominionId.startsWith("0x")) {
+      const id = registry.findDominionId(dominionId);
+      if (!id) {
+        throw new Error(`Dominion url name not found: ${dominionId}`);
+      }
+      dominionId = id;
+    }
     queryClient.ensureQueryData(
       dominionProposalsQO({ network, queryClient, dominionId })
-    ),
+    );
+  },
 });
 
 function Proposals() {
@@ -23,8 +36,9 @@ function Proposals() {
   const { dominionId } = Route.useParams();
   const queryClient = useQueryClient();
 
+  const { dominion } = useSuspenseDominion({ network, dominionId });
   const { data: proposals } = useSuspenseQuery(
-    dominionProposalsQO({ network, queryClient, dominionId })
+    dominionProposalsQO({ network, queryClient, dominionId: dominion.id })
   );
   return (
     <Container>

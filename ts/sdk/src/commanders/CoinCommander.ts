@@ -8,6 +8,7 @@ import {
 import {DominionSDK} from '../sdk';
 import {Commander} from '../Commander';
 import {Command} from '../command';
+import {normalizeStructTag} from '@mysten/sui.js/utils';
 
 export type CoinCommandAction = TransferCoinAction;
 export type TransferCoinAction = {
@@ -161,9 +162,9 @@ export class CoinCommander implements Commander {
       name: {type: 'u8', value: 1},
     });
     const payload = commandObject.data as unknown as CoinCommandData;
-    const coinType = payload.content.type.match(
-      /.+::coin_commander::CoinCommand<(.+)>/
-    )![1];
+    const coinType = normalizeStructTag(
+      payload.content.type.match(/.+::coin_commander::CoinCommand<(.+)>/)![1]
+    );
 
     let action: CoinCommandAction;
     switch (payload.content.fields.kind) {

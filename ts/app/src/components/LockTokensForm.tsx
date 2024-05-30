@@ -6,9 +6,9 @@ import useLockTokens from "../hooks/mutations/useLockTokens";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import coinBalanceQO from "../queryOptions/user/coinBalanceQO";
-import dominionQO from "../queryOptions/dominionQO";
 import { SnackbarKey, useSnackbar } from "notistack";
 import { formatDigest } from "@mysten/sui.js/utils";
+import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
 
 function LockTokensForm({
   network,
@@ -21,6 +21,9 @@ function LockTokensForm({
 }) {
   const currentAccount = useCurrentAccount();
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+  const { governance } = useSuspenseDominion({ network, dominionId });
+
   let notification: SnackbarKey;
 
   const lockTokens = useLockTokens({
@@ -30,7 +33,8 @@ function LockTokensForm({
     onSuccess({ tx }, { amount }) {
       notification = enqueueSnackbar(
         <Typography>
-          Locking {amount.toString()} of ${governance.coinType} transaction was sent {" "}
+          Locking {amount.toString()} of {governance.coinType} transaction was
+          sent{" "}
           <Link
             target="_blank"
             rel="noreferrer"
@@ -48,7 +52,7 @@ function LockTokensForm({
       closeSnackbar(notification);
       enqueueSnackbar(
         <Typography>
-          Locking {amount.toString()} of ${governance.coinType} transaction
+          Locking {amount.toString()} of {governance.coinType} transaction
           successful{" "}
           <Link
             target="_blank"
@@ -67,7 +71,7 @@ function LockTokensForm({
       closeSnackbar(notification);
       enqueueSnackbar(
         <Typography>
-          Locking{" "}
+          Locking failed{" "}
           <Link
             target="_blank"
             rel="noreferrer"
@@ -91,10 +95,6 @@ function LockTokensForm({
     },
     [lockTokens]
   );
-  const queryClient = useQueryClient();
-  const {
-    data: { governance },
-  } = useSuspenseQuery(dominionQO({ network, dominionId, queryClient }));
   const {
     data: { totalBalance },
   } = useSuspenseQuery(

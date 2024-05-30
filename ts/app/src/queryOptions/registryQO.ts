@@ -22,7 +22,7 @@ export function registryQO({
     queryKey: [network, "registry", registryId],
     queryFn: async ({ queryKey: [network] }) => {
       const sui = new SuiClient(networkConfig[network as Network]);
-      const config = (await queryClient.fetchQuery(configQO()))[
+      const config = (await queryClient.ensureQueryData(configQO()))[
         network as Network
       ];
       const sdk = new DominionSDK(sui, config);

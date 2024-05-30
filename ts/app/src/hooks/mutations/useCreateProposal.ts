@@ -24,10 +24,10 @@ function useCreateProposal({
 }: {
   network: Network;
   dominionId: string;
-  wallet?: string;
+  wallet: string;
 }) {
   const mutation = useSignAndExecuteTransactionBlock({
-    mutationKey: [network, "createProposal", dominionId],
+    mutationKey: [network, "createProposal", wallet, dominionId],
     onSuccess: () => {},
   });
   const config = useSuspenseConfig({ network });

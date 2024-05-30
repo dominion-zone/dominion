@@ -14,6 +14,7 @@ import { Action } from "../../types/actions";
 import { useEffect, useState } from "react";
 import ActionEditor from "./ActionEditor";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import { SUI_COIN_TYPE } from "../../consts";
 
 function ActionCreator({
   network,
@@ -29,7 +30,7 @@ function ActionCreator({
 
   const [action, setAction] = useState<Action>({
     type: "transferCoin",
-    coinType: "0x2::sui::SUI",
+    coinType: SUI_COIN_TYPE,
     recipient: "",
     amount: "0",
   });
@@ -46,7 +47,7 @@ function ActionCreator({
       case "transferCoin":
         setAction({
           type: actionType,
-          coinType: "0x2::sui::SUI",
+          coinType: SUI_COIN_TYPE,
           recipient: "",
           amount: "0",
         });

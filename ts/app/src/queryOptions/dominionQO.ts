@@ -21,6 +21,10 @@ function dominionQO({
   dominionId: string;
   queryClient: QueryClient;
 }) {
+  if (!dominionId.startsWith("0x")) {
+    throw new Error("Invalid dominion id");
+  }
+
   return queryOptions({
     queryKey: [network, "dominion", dominionId],
     queryFn: async ({
@@ -31,24 +35,6 @@ function dominionQO({
         network as Network
       ];
       const sdk = new DominionSDK(sui, config);
-
-      if (!dominionId.startsWith("0x")) {
-        const registry = await queryClient.fetchQuery(
-          registryQO({ network: network as Network, queryClient })
-        );
-        const actualDominionId = registry.findDominionId(dominionId);
-        if (!actualDominionId) {
-          throw new Error(`Dominion url name not found: ${dominionId}`);
-        }
-        const result = await queryClient.fetchQuery(
-          dominionQO({
-            network: network as Network,
-            dominionId: actualDominionId,
-            queryClient,
-          })
-        );
-        return result;
-      }
 
       const dominion = await Dominion.fetch({ sdk, id: dominionId });
       const governance = await queryClient.fetchQuery(

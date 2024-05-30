@@ -14,6 +14,9 @@ function dominionProposalsQO({
   dominionId: string;
   queryClient: QueryClient;
 }) {
+  if (!dominionId.startsWith("0x")) {
+    throw new Error("Invalid dominion id");
+  }
   return queryOptions({
     queryKey: [network, "dominion", dominionId, "proposals"],
     queryFn: async ({ queryKey: [network, , dominionId] }) => {

@@ -32,6 +32,7 @@ export const Route = createFileRoute(
   component: CreateProposal,
   validateSearch: z.object({
     actions: z.array(action).optional(),
+    wallet: z.string(),
   }),
 });
 

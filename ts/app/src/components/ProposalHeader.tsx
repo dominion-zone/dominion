@@ -10,7 +10,7 @@ import UpButton from "./UpButton";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import proposalQO from "../queryOptions/proposalQO";
 import governanceQO from "../queryOptions/governanceQO";
-import dominionQO from "../queryOptions/dominionQO";
+import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
 
 export type ProposalHeaderTab = "info";
 
@@ -30,11 +30,11 @@ function ProposalHeader({ tab }: ProposalHeaderProps) {
   const { data: governance } = useSuspenseQuery(
     governanceQO({ network, governanceId: proposal.governanceId, queryClient })
   );
-  const {
-    data: { dominion, urlName },
-  } = useSuspenseQuery(
-    dominionQO({ network, dominionId: governance.dominionId, queryClient })
-  );
+
+  const { dominion, urlName } = useSuspenseDominion({
+    network,
+    dominionId: governance.dominionId,
+  });
 
   const handleChange = useCallback(
     (_e: SyntheticEvent, newValue: ProposalHeaderTab) => {

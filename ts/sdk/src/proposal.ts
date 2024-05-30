@@ -5,7 +5,7 @@ import {
 } from '@mysten/sui.js/transactions';
 import {Command, CommandData} from './command';
 import {DominionSDK} from './sdk';
-import {SUI_CLOCK_OBJECT_ID} from '@mysten/sui.js/utils';
+import {SUI_CLOCK_OBJECT_ID, normalizeStructTag} from '@mysten/sui.js/utils';
 
 type ProposalOptionData = {
   type: string;
@@ -124,7 +124,9 @@ export class Proposal {
   }) {
     return new Proposal(
       sdk,
-      content.type.match(/.+::proposal::Proposal<(.+)>/)![1],
+      normalizeStructTag(
+        content.type.match(/.+::proposal::Proposal<(.+)>/)![1]
+      ),
       content.fields.governance_id,
       content.fields.id.id,
       content.fields.name,

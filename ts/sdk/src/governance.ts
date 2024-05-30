@@ -5,6 +5,7 @@ import {
   TransactionResult,
 } from '@mysten/sui.js/transactions';
 import {DominionSDK} from './sdk';
+import {normalizeStructTag} from '@mysten/sui.js/utils';
 
 type GovernanceData = {
   objectId: string;
@@ -221,7 +222,7 @@ export class Governance {
     return new Governance(
       sdk,
       objectId,
-      type.match(/.+::governance::Governance<(.+)>/)![1],
+      normalizeStructTag(type.match(/.+::governance::Governance<(.+)>/)![1]),
       dominion_id,
       name,
       link,

@@ -1,10 +1,13 @@
-import { Button, TextField, Typography } from "@mui/material";
+import { Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { Network } from "../config/network";
 import useSuspenseMember from "../hooks/queries/useSuspenseMember";
 import { Form, Formik } from "formik";
-import useWithdraw from "../hooks/mutations/useWithdraw";
+import useUnlockTokens from "../hooks/mutations/useUnlockTokens";
 import { useCallback } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { SnackbarKey, useSnackbar } from "notistack";
+import { formatDigest } from "@mysten/sui.js/utils";
+import useSuspenseDominion from "../hooks/queries/useSuspenseDominion";
 
 function MemberInfo({
   network,
@@ -17,14 +20,78 @@ function MemberInfo({
 }) {
   const currentAccount = useCurrentAccount();
   const member = useSuspenseMember({ network, dominionId, wallet });
-  const withdraw = useWithdraw({ network, dominionId, wallet });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const { governance } = useSuspenseDominion({ network, dominionId });
+  let notification: SnackbarKey;
+
+  const unlockTokens = useUnlockTokens({
+    network,
+    dominionId,
+    wallet,
+    onSuccess({ tx }, { amount }) {
+      notification = enqueueSnackbar(
+        <Typography>
+          Unlocking {amount.toString()} of {governance.coinType} transaction
+          was sent{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "info",
+        }
+      );
+    },
+    onTransactionSuccess({ tx }, { amount }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Unlocking {amount.toString()} of {governance.coinType} transaction
+          successful{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "success",
+        }
+      );
+    },
+    onTransactionError({ tx }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Unlocking failed{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "error",
+        }
+      );
+    },
+  });
+
   const handleSubmit = useCallback(
     ({ amount }: { amount: string }) => {
-      withdraw.mutate({
+      unlockTokens.mutate({
         amount: BigInt(amount),
       });
     },
-    [withdraw]
+    [unlockTokens]
   );
 
   if (!member) {
@@ -32,15 +99,15 @@ function MemberInfo({
   }
   return (
     <div>
-      <Typography>Voting power: {member.balance}</Typography>
-      <br/>
+      <Typography>Voting power: {member.balance.toString()}</Typography>
+      <br />
       <Formik
         initialValues={{ amount: member.balance.toString() }}
         onSubmit={handleSubmit}
       >
-        {({ values, handleChange, handleBlur }) => (
+        {({ values, handleChange, handleBlur, setFieldValue }) => (
           <Form>
-            <div>
+            <Stack direction="row">
               <TextField
                 type="number"
                 name="amount"
@@ -49,9 +116,15 @@ function MemberInfo({
                 onChange={handleChange}
                 onBlur={handleBlur}
               />
-            </div>
+              <Button onClick={() => setFieldValue("amount", member.balance.toString())}>
+                Max ({member.balance.toString()})
+              </Button>
+            </Stack>
             <div>
-              <Button type="submit" disabled={!currentAccount || withdraw.isPending}>
+              <Button
+                type="submit"
+                disabled={!currentAccount || unlockTokens.isPending}
+              >
                 Withdraw
               </Button>
             </div>

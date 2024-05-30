@@ -9,6 +9,7 @@ import userMembersQO from "../../../../queryOptions/user/userMembersQO";
 import coinBalanceQO from "../../../../queryOptions/user/coinBalanceQO";
 import { z } from "zod";
 import dominionQO from "../../../../queryOptions/dominionQO";
+import { registryQO } from "../../../../queryOptions/registryQO";
 
 export const Route = createFileRoute("/app/dominion/$dominionId/participate")({
   component: Participate,
@@ -26,6 +27,16 @@ export const Route = createFileRoute("/app/dominion/$dominionId/participate")({
         userMembersQO({ network, queryClient, wallet })
       ),
       (async () => {
+        const registry = await queryClient.ensureQueryData(
+          registryQO({ network, queryClient })
+        );
+        if (!dominionId.startsWith("0x")) {
+          const id = registry.findDominionId(dominionId);
+          if (!id) {
+            throw new Error(`Dominion url name not found: ${dominionId}`);
+          }
+          dominionId = id;
+        }
         const { governance } = await queryClient.ensureQueryData(
           dominionQO({ network, dominionId, queryClient })
         );

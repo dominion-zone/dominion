@@ -9,6 +9,7 @@ import useCreateGovernance from "../../hooks/mutations/useCreateGovernance";
 import DominionIndexHeader from "../../components/DominionIndexHeader";
 import { Formik, Form } from "formik";
 import useSuspenseConfig from "../../hooks/useSuspenseConfig";
+import { SUI_COIN_TYPE } from "../../consts";
 
 export const Route = createFileRoute("/app/create")({
   component: CreateGovernance,
@@ -30,7 +31,7 @@ function CreateGovernance() {
 
   const defaultCoin =
     (config.testCoin && `${config.testCoin.contract}::test_coin::TEST_COIN`) ||
-    "0x2::sui::SUI";
+    SUI_COIN_TYPE;
 
   const createGovernance = useCreateGovernance({
     network,
