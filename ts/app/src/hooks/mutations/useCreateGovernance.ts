@@ -1,16 +1,28 @@
 import { Network } from "../../config/network";
-import { Dominion, Governance, Member } from "@dominion.zone/dominion-sdk";
+import {
+  Dominion,
+  EntryInserted,
+  Governance,
+  Member,
+} from "@dominion.zone/dominion-sdk";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
+import { useCurrentAccount, useCurrentWallet } from "@mysten/dapp-kit";
 import useDominionSdk from "../useDominionSdk";
 import useSuspenseConfig from "../useSuspenseConfig";
 import { registryQO } from "../../queryOptions/registryQO";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
-import { useSnackbar } from "notistack";
-import { useNavigate } from "@tanstack/react-router";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
+import { SuiSignAndExecuteTransactionBlockOutput } from "@mysten/wallet-standard";
+import {
+  TransactionOptions,
+  UseSignAndExecuteTransactionOptions,
+  signAndExecuteTransactionBlock,
+} from "./utils";
 
-export type CreateGovernanceParams = {
+export type CreateGovernanceParams = TransactionOptions & {
   name: string;
   coinType: string;
   urlName: string;
@@ -20,39 +32,49 @@ export type CreateGovernanceParams = {
   maxVotingTime: bigint;
 };
 
+export type CreateGovernanceResult = {
+  tx: SuiSignAndExecuteTransactionBlockOutput;
+  dominionId: string;
+};
+
+export type UseCreateGovernanceOptions = UseSignAndExecuteTransactionOptions<
+  CreateGovernanceResult,
+  Error,
+  CreateGovernanceParams
+> & {
+  network: Network;
+  wallet: string;
+};
+
 function useCreateGovernance({
   network,
   wallet,
-}: {
-  network: Network;
-  wallet: string;
-}) {
-  const mutation = useSignAndExecuteTransactionBlock({
-    mutationKey: [network, "createGovernance"],
-  });
-  const config = useSuspenseConfig({ network });
+  onTransactionSuccess,
+  onTransactionError,
+  ...mutationOptions
+}: UseCreateGovernanceOptions) {
+  const { currentWallet } = useCurrentWallet();
+  const currentAccount = useCurrentAccount();
   const dominionSdk = useDominionSdk({ network });
   const queryClient = useQueryClient();
   const { data: registry } = useSuspenseQuery(
     registryQO({ network, queryClient })
   );
-  const { enqueueSnackbar } = useSnackbar();
-  const navigate = useNavigate();
+  const config = useSuspenseConfig({ network });
 
-  const mutateAsync = useCallback(
-    async (
-      {
-        name,
-        coinType,
-        urlName,
-        link,
-        minWeightToCreateProposal,
-        voteThreshold,
-        maxVotingTime,
-      }: CreateGovernanceParams,
-      options?: Parameters<typeof mutation.mutateAsync>[1]
-    ) => {
-      const txb = new TransactionBlock();
+  return useMutation({
+    mutationKey: [network, "createGovernance", wallet],
+    async mutationFn({
+      name,
+      coinType,
+      urlName,
+      link,
+      minWeightToCreateProposal,
+      voteThreshold,
+      maxVotingTime,
+      ...options
+    }) {
+      const transactionBlock = new TransactionBlock();
 
       const {
         dominion,
@@ -60,24 +82,24 @@ function useCreateGovernance({
         ownerCap,
       } = Dominion.withNew({
         sdk: dominionSdk,
-        txb,
+        txb: transactionBlock,
       });
 
       Dominion.withEnableAdminCommander({
         sdk: dominionSdk,
         dominion,
         adminCap: dominionAdminCap,
-        txb,
+        txb: transactionBlock,
       });
       Governance.withEnableAdminCommander({
         sdk: dominionSdk,
         dominion,
         adminCap: dominionAdminCap,
-        txb,
+        txb: transactionBlock,
       });
       dominionSdk.coinCommander.withEnable({
         sdk: dominionSdk,
-        txb,
+        txb: transactionBlock,
         dominion,
         adminCap: dominionAdminCap,
       });
@@ -85,7 +107,7 @@ function useCreateGovernance({
         dominion,
         urlName,
         adminCap: dominionAdminCap,
-        txb,
+        txb: transactionBlock,
       });
 
       const { governance, governanceAdminCap, vetoCap } = Governance.withNew({
@@ -98,17 +120,20 @@ function useCreateGovernance({
         minWeightToCreateProposal: BigInt(minWeightToCreateProposal),
         voteThreshold: BigInt(voteThreshold),
         maxVotingTime: BigInt(maxVotingTime),
-        txb,
+        txb: transactionBlock,
       });
 
-      txb.transferObjects(
-        [txb.object(dominionAdminCap), txb.object(governanceAdminCap)],
-        txb.moveCall({
+      transactionBlock.transferObjects(
+        [
+          transactionBlock.object(dominionAdminCap),
+          transactionBlock.object(governanceAdminCap),
+        ],
+        transactionBlock.moveCall({
           target: "0x2::object::id_address",
           typeArguments: [
             `${dominionSdk.config.dominion.contract}::dominion::Dominion`,
           ],
-          arguments: [txb.object(dominion)],
+          arguments: [transactionBlock.object(dominion)],
         })
       );
 
@@ -116,80 +141,123 @@ function useCreateGovernance({
         sdk: dominionSdk,
         governance,
         coinType,
-        txb,
+        txb: transactionBlock,
       });
 
       if (coinType === `${config.testCoin?.contract}::test_coin::TEST_COIN`) {
-        const coin = txb.moveCall({
+        const coin = transactionBlock.moveCall({
           target: `${config.testCoin!.contract}::test_coin::mint_coin`,
           arguments: [
-            txb.pure(1000000000000),
-            txb.object(config.testCoin!.control),
+            transactionBlock.pure(1000000000000),
+            transactionBlock.object(config.testCoin!.control),
           ],
         });
 
-        Member.withDeposit({ sdk: dominionSdk, member, coinType, coin, txb });
+        Member.withDeposit({
+          sdk: dominionSdk,
+          member,
+          coinType,
+          coin,
+          txb: transactionBlock,
+        });
       }
-      Dominion.withCommit({ sdk: dominionSdk, dominion, txb });
-      Governance.withCommit({ sdk: dominionSdk, governance, coinType, txb });
-      txb.transferObjects([txb.object(vetoCap), txb.object(member)], wallet);
-      txb.setGasBudget(2000000000);
-      txb.setSenderIfNotSet(wallet);
-
-      const r = await mutation.mutateAsync(
-        { transactionBlock: txb, options: { showEvents: true } },
-        options
+      Dominion.withCommit({
+        sdk: dominionSdk,
+        dominion,
+        txb: transactionBlock,
+      });
+      Governance.withCommit({
+        sdk: dominionSdk,
+        governance,
+        coinType,
+        txb: transactionBlock,
+      });
+      transactionBlock.transferObjects(
+        [transactionBlock.object(vetoCap), transactionBlock.object(member)],
+        wallet
       );
-      const { dominion_id, url_name } = (
-        r.events!.find(
-          (e) =>
-            e.type ===
-            `${dominionSdk.config.registry.contract}::dominion_registry::EntryInserted`
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        )!.parsedJson as any
-      ).entry;
+      transactionBlock.setGasBudget(2000000000);
+      transactionBlock.setSenderIfNotSet(wallet);
 
-      enqueueSnackbar(`Dominion ${dominion_id} created successfully`, {
-        variant: "success",
+      if (!options.options) {
+        options.options = {};
+      }
+      if (!options.options.showEvents) {
+        options.options.showEvents = true;
+      }
+      const tx = await signAndExecuteTransactionBlock({
+        client: dominionSdk.sui,
+        currentWallet,
+        currentAccount,
+        transactionBlock,
+        ...options,
+        onTransactionSuccess(tx) {
+          const { dominionId } = EntryInserted.find({
+            sdk: dominionSdk,
+            events: tx.events!,
+          })!;
+
+          queryClient.invalidateQueries({
+            queryKey: [network, "registry", undefined],
+          });
+          queryClient.invalidateQueries({
+            queryKey: [network, "user", wallet, "members"],
+          });
+          queryClient.invalidateQueries({
+            queryKey: [network, "user", wallet, "dominions"],
+          });
+          if (onTransactionSuccess) {
+            onTransactionSuccess(
+              { tx, dominionId },
+              {
+                name,
+                coinType,
+                urlName,
+                link,
+                minWeightToCreateProposal,
+                voteThreshold,
+                maxVotingTime,
+              },
+              undefined
+            );
+          }
+        },
+        onTransactionError(tx, error) {
+          const { dominionId } = EntryInserted.find({
+            sdk: dominionSdk,
+            events: tx.events!,
+          })!;
+          if (onTransactionError) {
+            onTransactionError(
+              { tx, dominionId },
+              error,
+              {
+                name,
+                coinType,
+                urlName,
+                link,
+                minWeightToCreateProposal,
+                voteThreshold,
+                maxVotingTime,
+              },
+              undefined
+            );
+          }
+        },
       });
 
-      navigate({
-        to: "/app/dominion/$dominionId",
-        params: { dominionId: dominion_id },
-        search: { network, wallet },
-      });
+      const { dominionId } = EntryInserted.find({
+        sdk: dominionSdk,
+        events: tx.events!,
+      })!;
 
       return {
-        transaction: r.digest,
-        dominionId: dominion_id,
-        urlName: url_name,
+        tx,
+        dominionId,
       };
     },
-    [
-      config.testCoin,
-      dominionSdk,
-      enqueueSnackbar,
-      mutation,
-      navigate,
-      network,
-      registry,
-      wallet,
-    ]
-  );
-
-  return useMemo(
-    () => ({
-      ...mutation,
-      mutate(
-        params: CreateGovernanceParams,
-        options?: Parameters<typeof mutation.mutate>[1]
-      ) {
-        mutateAsync(params, options);
-      },
-      mutateAsync,
-    }),
-    [mutateAsync, mutation]
-  );
+    ...mutationOptions,
+  });
 }
 
 export default useCreateGovernance;

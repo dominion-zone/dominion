@@ -10,7 +10,9 @@ export const Route = createFileRoute("/app/dominion/$dominionId")({
     context: { queryClient },
     params: { dominionId },
   }) {
-    const registry = await queryClient.ensureQueryData(registryQO({ network, queryClient }));
+    const registry = await queryClient.fetchQuery(
+      registryQO({ network, queryClient })
+    );
     if (!dominionId.startsWith("0x")) {
       const id = registry.findDominionId(dominionId);
       if (!id) {
@@ -21,5 +23,5 @@ export const Route = createFileRoute("/app/dominion/$dominionId")({
     await queryClient.ensureQueryData(
       dominionQO({ network, queryClient, dominionId })
     );
-  }
+  },
 });

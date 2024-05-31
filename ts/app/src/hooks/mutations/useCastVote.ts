@@ -1,56 +1,69 @@
-import { useSignAndExecuteTransactionBlock } from "@mysten/dapp-kit";
+import {
+  useCurrentAccount,
+  useCurrentWallet,
+} from "@mysten/dapp-kit";
 import { Network } from "../../config/network";
 import useSuspenseConfig from "../useSuspenseConfig";
-import { useCallback, useMemo } from "react";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import useDominionSdk from "../useDominionSdk";
 import userMembersQO from "../../queryOptions/user/userMembersQO";
 import { Member } from "@dominion.zone/dominion-sdk";
-import proposalQO from "../../queryOptions/proposalQO";
-import governanceQO from "../../queryOptions/governanceQO";
-import { useSnackbar } from "notistack";
+import {
+  TransactionOptions,
+  UseSignAndExecuteTransactionOptions,
+  signAndExecuteTransactionBlock,
+} from "./utils";
+import { SuiSignAndExecuteTransactionBlockOutput } from "@mysten/wallet-standard";
+import useSuspenseProposal from "../queries/useSuspenseProposal";
+import useSuspenseGovernance from "../queries/useSuspenseGovernance";
 
-export type CastVoteParams = {
-  wallet: string;
+export type CastVoteParams = TransactionOptions & {
   optionIndex: bigint | null;
   isAbstain: boolean;
   reliquish: boolean;
 };
 
+export type CastVoteResult = {
+  tx: SuiSignAndExecuteTransactionBlockOutput;
+};
+
+export type UseCastVoteOptions = UseSignAndExecuteTransactionOptions<
+  CastVoteResult,
+  Error,
+  CastVoteParams
+> & {
+  network: Network;
+  wallet: string;
+  proposalId: string;
+};
+
 function useCastVote({
   network,
+  wallet,
   proposalId,
-}: {
-  network: Network;
-  proposalId: string;
-}) {
-  const mutation = useSignAndExecuteTransactionBlock({
-    mutationKey: [network, "castVote", proposalId],
-    onSuccess: () => {},
-  });
+  onTransactionSuccess,
+  onTransactionError,
+  ...mutationOptions
+}: UseCastVoteOptions) {
+  const { currentWallet } = useCurrentWallet();
+  const currentAccount = useCurrentAccount();
   const config = useSuspenseConfig({ network });
   const dominionSdk = useDominionSdk({ network });
   const queryClient = useQueryClient();
-  const { enqueueSnackbar } = useSnackbar();
+  const proposal = useSuspenseProposal({
+    network,
+    proposalId,
+  });
+  const governance = useSuspenseGovernance({
+    network,
+    governanceId: proposal.governanceId,
+  });
 
-  const mutateAsync = useCallback(
-    async (
-      { wallet, optionIndex, isAbstain, reliquish }: CastVoteParams,
-      options?: Parameters<typeof mutation.mutateAsync>[1]
-    ) => {
-      const proposal = await queryClient.fetchQuery(
-        proposalQO({ network, proposalId, queryClient })
-      );
-      const governance = await queryClient.fetchQuery(
-        governanceQO({
-          network,
-          governanceId: proposal.governanceId,
-          queryClient,
-        })
-      );
-
-      const txb = new TransactionBlock();
+  return useMutation({
+    mutationKey: [network, "castVote", wallet, proposalId],
+    async mutationFn({ optionIndex, isAbstain, reliquish, ...options }) {
+      const transactionBlock = new TransactionBlock();
 
       const members = await queryClient.fetchQuery(
         userMembersQO({ network, wallet, queryClient })
@@ -60,25 +73,25 @@ function useCastVote({
       let memberArg;
 
       if (member) {
-        memberArg = txb.object(member.id);
+        memberArg = transactionBlock.object(member.id);
       } else {
         if (
           governance.coinType ===
           `${config.testCoin?.contract}::test_coin::TEST_COIN`
         ) {
-          memberArg = txb.object(
+          memberArg = transactionBlock.object(
             Member.withNew({
               sdk: dominionSdk,
-              txb,
+              txb: transactionBlock,
               coinType: governance.coinType,
-              governance: txb.object(governance.id),
+              governance: transactionBlock.object(governance.id),
             })
           );
-          const coin = txb.moveCall({
+          const coin = transactionBlock.moveCall({
             target: `${config.testCoin!.contract}::test_coin::mint_coin`,
             arguments: [
-              txb.pure(1000000000000),
-              txb.object(config.testCoin!.control),
+              transactionBlock.pure(1000000000000),
+              transactionBlock.object(config.testCoin!.control),
             ],
           });
 
@@ -87,7 +100,7 @@ function useCastVote({
             member: memberArg,
             coinType: governance.coinType,
             coin,
-            txb,
+            txb: transactionBlock,
           });
         } else {
           throw new Error("Participate in the governance first");
@@ -98,45 +111,51 @@ function useCastVote({
         sdk: dominionSdk,
         member: memberArg,
         coinType: governance.coinType,
-        proposal: txb.object(proposalId),
+        proposal: transactionBlock.object(proposalId),
         optionIndex: optionIndex,
         isAbstain,
         reliquish,
-        txb,
+        txb: transactionBlock,
       });
 
-      txb.setGasBudget(2000000000);
-      txb.setSenderIfNotSet(wallet);
-      const r = await mutation.mutateAsync({ transactionBlock: txb }, options);
-      enqueueSnackbar(`Proposal ${proposal.id} vote cast successfully`, {
-        variant: "success",
+      transactionBlock.setGasBudget(2000000000);
+      transactionBlock.setSenderIfNotSet(wallet);
+      const tx = await signAndExecuteTransactionBlock({
+        client: dominionSdk.sui,
+        currentWallet,
+        currentAccount,
+        transactionBlock,
+        ...options,
+        onTransactionSuccess(tx) {
+          queryClient.invalidateQueries({
+            queryKey: [network, "proposal", proposalId],
+          });
+          if (onTransactionSuccess) {
+            onTransactionSuccess(
+              { tx },
+              { optionIndex, isAbstain, reliquish },
+              undefined
+            );
+          }
+        },
+        onTransactionError(tx, error) {
+          if (onTransactionError) {
+            onTransactionError(
+              { tx },
+              error,
+              { optionIndex, isAbstain, reliquish },
+              undefined
+            );
+          }
+        },
       });
-      return r;
+
+      return {
+        tx,
+      };
     },
-    [
-      config.testCoin,
-      dominionSdk,
-      enqueueSnackbar,
-      mutation,
-      network,
-      proposalId,
-      queryClient,
-    ]
-  );
-
-  return useMemo(
-    () => ({
-      ...mutation,
-      mutate(
-        params: CastVoteParams,
-        options?: Parameters<typeof mutation.mutate>[1]
-      ) {
-        mutateAsync(params, options);
-      },
-      mutateAsync,
-    }),
-    [mutateAsync, mutation]
-  );
+    ...mutationOptions,
+  });
 }
 
 export default useCastVote;

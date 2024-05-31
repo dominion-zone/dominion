@@ -1,4 +1,4 @@
-import { Button, Card, Typography } from "@mui/material";
+import { Button, Card, Link, Typography } from "@mui/material";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useSearch } from "@tanstack/react-router";
 import userMembersQO from "../queryOptions/user/userMembersQO";
@@ -6,21 +6,25 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Proposal } from "@dominion.zone/dominion-sdk";
 import useCastVote from "../hooks/mutations/useCastVote";
 import { useCallback, useMemo } from "react";
+import { SnackbarKey, useSnackbar } from "notistack";
+import { formatDigest } from "@mysten/sui.js/utils";
 
 function ProposalVoting({
   proposal,
   disabled = false,
+  wallet,
 }: {
   proposal: Proposal;
   disabled?: boolean;
+  wallet: string;
 }) {
-  const { network, wallet } = useSearch({ from: "/app" });
+  const { network } = useSearch({ from: "/app" });
 
   const currentAccount = useCurrentAccount();
   const queryClient = useQueryClient();
 
   const { data: members } = useSuspenseQuery(
-    userMembersQO({ network, wallet: wallet!, queryClient })
+    userMembersQO({ network, wallet, queryClient })
   );
   const member = members.find(
     (member) => member.governanceId === proposal.governanceId
@@ -29,43 +33,99 @@ function ProposalVoting({
     (vote) => vote.proposalId === proposal.id
   );
 
-  const castVote = useCastVote({ network, proposalId: proposal.id });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  let notification: SnackbarKey;
+
+  const castVote = useCastVote({
+    network,
+    proposalId: proposal.id,
+    wallet,
+    onSuccess({ tx }) {
+      notification = enqueueSnackbar(
+        <Typography>
+          Proposal {proposal.id} vote cast transaction was sent{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "info",
+        }
+      );
+    },
+    onTransactionSuccess({ tx }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Proposal {proposal.id} vote cast transaction successful{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "success",
+        }
+      );
+    },
+    onTransactionError({ tx }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Vote cast failed{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "error",
+        }
+      );
+    },
+  });
 
   const castFor = useCallback(() => {
     castVote.mutate({
-      wallet: wallet!,
       optionIndex: 0n,
       isAbstain: false,
       reliquish: false,
     });
-  }, [castVote, wallet]);
+  }, [castVote]);
 
   const castAgainst = useCallback(() => {
     castVote.mutate({
-      wallet: wallet!,
       optionIndex: null,
       isAbstain: false,
       reliquish: false,
     });
-  }, [castVote, wallet]);
+  }, [castVote]);
 
   const castAbstain = useCallback(() => {
     castVote.mutate({
-      wallet: wallet!,
       optionIndex: null,
       isAbstain: true,
       reliquish: false,
     });
-  }, [castVote, wallet]);
+  }, [castVote]);
 
   const castRelinquish = useCallback(() => {
     castVote.mutate({
-      wallet: wallet!,
       optionIndex: null,
       isAbstain: false,
       reliquish: true,
     });
-  }, [castVote, wallet]);
+  }, [castVote]);
 
   const currentVoteKind = useMemo(() => {
     if (!currentVote) {

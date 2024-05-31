@@ -57,6 +57,7 @@ function ProposalInfo() {
           <ProposalVoting
             proposal={proposal}
             disabled={status !== "voting" && status !== "coolingOff"}
+            wallet={wallet}
           />
         )}
       </Card>

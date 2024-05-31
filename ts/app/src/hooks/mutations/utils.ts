@@ -102,8 +102,8 @@ export async function signAndExecuteTransactionBlock({
       options,
     });
   }
-  
-  client.waitForTransactionBlock({ digest: tx.digest }).then((tx) => {
+
+  client.waitForTransactionBlock({ digest: tx.digest, options }).then((tx) => {
     if (tx.errors) {
       onTransactionError(tx, tx.errors);
     } else {

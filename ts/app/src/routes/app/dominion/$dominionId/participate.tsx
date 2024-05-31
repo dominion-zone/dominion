@@ -27,7 +27,7 @@ export const Route = createFileRoute("/app/dominion/$dominionId/participate")({
         userMembersQO({ network, queryClient, wallet })
       ),
       (async () => {
-        const registry = await queryClient.ensureQueryData(
+        const registry = await queryClient.fetchQuery(
           registryQO({ network, queryClient })
         );
         if (!dominionId.startsWith("0x")) {

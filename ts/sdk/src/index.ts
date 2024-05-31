@@ -6,3 +6,4 @@ export * from './proposal';
 export * from './command';
 export * from './registry';
 export * from './commanders/index';
+export * from './events/index';

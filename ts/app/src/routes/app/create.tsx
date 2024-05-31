@@ -1,5 +1,12 @@
-import { Button, Container, Stack, TextField, Typography } from "@mui/material";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  Button,
+  Container,
+  Link,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import CoinTypeSelector from "../../components/CoinTypeSelector";
 import { z } from "zod";
 import allCoinBalancesQO from "../../queryOptions/user/allCoinBalancesQO";
@@ -10,6 +17,8 @@ import DominionIndexHeader from "../../components/DominionIndexHeader";
 import { Formik, Form } from "formik";
 import useSuspenseConfig from "../../hooks/useSuspenseConfig";
 import { SUI_COIN_TYPE } from "../../consts";
+import { formatDigest, normalizeStructTag } from "@mysten/sui.js/utils";
+import { SnackbarKey, useSnackbar } from "notistack";
 
 export const Route = createFileRoute("/app/create")({
   component: CreateGovernance,
@@ -30,12 +39,78 @@ function CreateGovernance() {
   const config = useSuspenseConfig({ network });
 
   const defaultCoin =
-    (config.testCoin && `${config.testCoin.contract}::test_coin::TEST_COIN`) ||
+    (config.testCoin &&
+      normalizeStructTag(
+        `${config.testCoin.contract}::test_coin::TEST_COIN`
+      )) ||
     SUI_COIN_TYPE;
+
+  const navigate = useNavigate();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  let notification: SnackbarKey;
 
   const createGovernance = useCreateGovernance({
     network,
     wallet,
+    onSuccess({ tx }, { name }) {
+      notification = enqueueSnackbar(
+        <Typography>
+          Dominion {name} creation transaction was sent{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "info",
+        }
+      );
+    },
+    onTransactionSuccess({ tx, dominionId }, { name, urlName }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Dominion {name} creation is successfull{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/object/${dominionId}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "success",
+        }
+      );
+
+      navigate({
+        to: "/app/dominion/$dominionId",
+        params: { dominionId: urlName || dominionId },
+        search: { network, wallet },
+      });
+    },
+    onTransactionError({ tx }) {
+      closeSnackbar(notification);
+      enqueueSnackbar(
+        <Typography>
+          Dominion creation failed{" "}
+          <Link
+            target="_blank"
+            rel="noreferrer"
+            href={`https://suiscan.xyz/${network}/tx/${tx.digest}`}
+          >
+            {formatDigest(tx.digest)}
+          </Link>
+        </Typography>,
+        {
+          variant: "error",
+        }
+      );
+    },
   });
 
   const handleSubmit = useCallback(
