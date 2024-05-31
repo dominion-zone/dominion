@@ -21,91 +21,21 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import coinBalanceQO from "../queryOptions/user/coinBalanceQO";
 import { SUI_COIN_TYPE } from "../consts";
 
-function DepositTokenToDominionForm({
+function DepositTokenToDominionDialog({
   network,
   wallet,
+  dominionId,
   disabled,
-  values,
-  setFieldValue,
-  handleChange,
-  handleBlur,
+  open,
   setOpen,
 }: {
   network: Network;
   wallet: string;
-  disabled: boolean;
-  values: { coinType: string; amount: string };
-  setOpen: (value: boolean) => void;
-} & FormikHelpers<{ coinType: string; amount: string }> &
-  FormikHandlers) {
-  const queryClient = useQueryClient();
-  const {
-    data: { totalBalance },
-  } = useSuspenseQuery(
-    coinBalanceQO({
-      network,
-      wallet,
-      coinType: values.coinType,
-      queryClient,
-    })
-  );
-  return (
-    <Form>
-      <DialogContent>
-        <div>
-          <CoinTypeSelector
-            network={network}
-            wallet={wallet}
-            value={values.coinType}
-            onChange={(value) => setFieldValue("coinType", value || "")}
-          />
-        </div>
-        <br/>
-        <Stack direction="row" spacing={1}>
-          <TextField
-            type="number"
-            name="amount"
-            label="Amount"
-            value={values.amount}
-            onChange={handleChange}
-            onBlur={handleBlur}
-          />
-          <Button
-            onClick={() => setFieldValue("amount", totalBalance.toString())}
-          >
-            Max ({totalBalance.toString()})
-          </Button>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button type="submit" disabled={disabled}>
-          Deposit
-        </Button>
-        <Button onClick={() => setOpen(false)}>Cancel</Button>
-      </DialogActions>
-    </Form>
-  );
-}
-
-function DepositTokenToDominionButton({
-  network,
-  wallet,
-  dominionId,
-  disabled = false,
-}: {
-  network: Network;
-  wallet: string;
   dominionId: string;
-  disabled?: boolean;
+  disabled: boolean;
+  open: boolean;
+  setOpen: (value: boolean) => void;
 }) {
-  const currentAccount = useCurrentAccount();
-
-  const [open, setOpen] = useState(false);
-
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   let notification: SnackbarKey;
 
@@ -180,31 +110,128 @@ function DepositTokenToDominionButton({
         }
       );
     },
-    [deposit]
+    [deposit, setOpen]
   );
+  const currentAccount = useCurrentAccount();
+
+  return (
+    <Dialog open={open} maxWidth="lg">
+      <DialogTitle>Deposit to dominion</DialogTitle>
+      <Formik
+        initialValues={{ coinType: SUI_COIN_TYPE, amount: "0" }}
+        onSubmit={handleSubmit}
+      >
+        {(params) => (
+          <DepositTokenToDominionForm
+            network={network}
+            wallet={wallet}
+            disabled={disabled || !currentAccount || deposit.isPending}
+            setOpen={setOpen}
+            {...params}
+          />
+        )}
+      </Formik>
+    </Dialog>
+  );
+}
+
+function DepositTokenToDominionForm({
+  network,
+  wallet,
+  disabled,
+  values,
+  setFieldValue,
+  handleChange,
+  handleBlur,
+  setOpen,
+}: {
+  network: Network;
+  wallet: string;
+  disabled: boolean;
+  values: { coinType: string; amount: string };
+  setOpen: (value: boolean) => void;
+} & FormikHelpers<{ coinType: string; amount: string }> &
+  FormikHandlers) {
+  const queryClient = useQueryClient();
+  const {
+    data: { totalBalance },
+  } = useSuspenseQuery(
+    coinBalanceQO({
+      network,
+      wallet,
+      coinType: values.coinType,
+      queryClient,
+    })
+  );
+  return (
+    <Form>
+      <DialogContent>
+        <div>
+          <CoinTypeSelector
+            network={network}
+            wallet={wallet}
+            value={values.coinType}
+            onChange={(value) => setFieldValue("coinType", value || "")}
+          />
+        </div>
+        <br />
+        <Stack direction="row" spacing={1}>
+          <TextField
+            type="number"
+            name="amount"
+            label="Amount"
+            value={values.amount}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
+          <Button
+            onClick={() => setFieldValue("amount", totalBalance.toString())}
+          >
+            Max ({totalBalance.toString()})
+          </Button>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button type="submit" disabled={disabled}>
+          Deposit
+        </Button>
+        <Button onClick={() => setOpen(false)}>Cancel</Button>
+      </DialogActions>
+    </Form>
+  );
+}
+
+function DepositTokenToDominionButton({
+  network,
+  wallet,
+  dominionId,
+  disabled = false,
+}: {
+  network: Network;
+  wallet: string;
+  dominionId: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+  const currentAccount = useCurrentAccount();
 
   return (
     <>
-      <Dialog open={open} maxWidth='lg'>
-        <DialogTitle>Deposit to dominion</DialogTitle>
-        <Formik
-          initialValues={{ coinType: SUI_COIN_TYPE, amount: "0" }}
-          onSubmit={handleSubmit}
-        >
-          {(params) => (
-            <DepositTokenToDominionForm
-              network={network}
-              wallet={wallet}
-              disabled={disabled || !currentAccount || deposit.isPending}
-              setOpen={setOpen}
-              {...params}
-            />
-          )}
-        </Formik>
-      </Dialog>
       <Button disabled={disabled || !currentAccount} onClick={handleClickOpen}>
         Deposit
       </Button>
+      <DepositTokenToDominionDialog
+        network={network}
+        wallet={wallet}
+        dominionId={dominionId}
+        disabled={disabled}
+        open={open}
+        setOpen={setOpen}
+      />
     </>
   );
 }

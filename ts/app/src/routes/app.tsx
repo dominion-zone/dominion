@@ -10,6 +10,9 @@ import {
 import { networkConfig, Network } from "../config/network";
 import { configQO } from "../queryOptions/configQO";
 import { useSnackbar } from "notistack";
+import { useQueryClient } from "@tanstack/react-query";
+import allCoinBalancesQO from "../queryOptions/user/allCoinBalancesQO";
+import userMembersQO from "../queryOptions/user/userMembersQO";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -31,21 +34,36 @@ function WalletHandler({ children }: { children: ReactNode }) {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [currentAddress, setCurrentAddress] = useState(currentAccount?.address);
-  
+
   const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (currentAccount?.address && currentAccount.address !== currentAddress) {
       enqueueSnackbar("Connected to wallet " + currentAccount.address, {
         variant: "success",
       });
-    } else if (!currentAccount?.address && currentAddress){
+      queryClient.prefetchQuery(
+        allCoinBalancesQO({
+          wallet: currentAccount.address,
+          network: search.network,
+          queryClient,
+        })
+      );
+      queryClient.prefetchQuery(
+        userMembersQO({
+          wallet: currentAccount.address,
+          network: search.network,
+          queryClient,
+        })
+      )
+    } else if (!currentAccount?.address && currentAddress) {
       enqueueSnackbar("Disconnected from wallet", {
         variant: "info",
       });
     }
     setCurrentAddress(currentAccount?.address);
-  }, [currentAccount?.address, currentAddress, enqueueSnackbar]);
+  }, [currentAccount?.address, currentAddress, enqueueSnackbar, queryClient, search.network]);
 
   useEffect(() => {
     if (currentAccount && currentAccount.address !== search.wallet) {

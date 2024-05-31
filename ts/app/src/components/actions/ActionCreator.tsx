@@ -1,13 +1,12 @@
 import {
-  Container,
   Dialog,
-  FormControl,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputLabel,
   MenuItem,
   Select,
   SelectChangeEvent,
-  Typography,
 } from "@mui/material";
 import { Network } from "../../config/network";
 import { Action } from "../../types/actions";
@@ -60,40 +59,40 @@ function ActionCreator({
         <AddCircleOutlineIcon />
       </IconButton>
 
-      <Dialog open={open}>
-        <Container>
-          <Typography>Create Action</Typography>
-          <FormControl fullWidth>
-            <InputLabel id="action-type-selector-label">Action type</InputLabel>
-            <Select
-              labelId="action-type-selector-label"
-              id="action-type-selector"
-              value={actionType}
-              label="Action type"
-              onChange={(event: SelectChangeEvent) =>
-                setActionType(
-                  event.target.value as
-                    | "enableCommander"
-                    | "disableCommander"
-                    | "transferCoin"
-                )
-              }
-            >
-              <MenuItem value="enableCommander">Enable commander</MenuItem>
-              <MenuItem value="disableCommander">Disable commander</MenuItem>
-              <MenuItem value="transferCoin">Transfer coin</MenuItem>
-            </Select>
-            <ActionEditor
-              network={network}
-              action={action}
-              setAction={(action) => {
-                createAction(action);
-                setOpen(false);
-              }}
-              onCancel={() => setOpen(false)}
-            />
-          </FormControl>
-        </Container>
+      <Dialog open={open} maxWidth="lg">
+        <DialogTitle>Create Action</DialogTitle>
+        <DialogContent>
+          <InputLabel id="action-type-selector-label">Action type</InputLabel>
+          <Select
+            labelId="action-type-selector-label"
+            id="action-type-selector"
+            value={actionType}
+            label="Action type"
+            onChange={(event: SelectChangeEvent) =>
+              setActionType(
+                event.target.value as
+                  | "enableCommander"
+                  | "disableCommander"
+                  | "transferCoin"
+              )
+            }
+          >
+            <MenuItem value="enableCommander">Enable commander</MenuItem>
+            <MenuItem value="disableCommander">Disable commander</MenuItem>
+            <MenuItem value="transferCoin">Transfer coin</MenuItem>
+          </Select>
+          <br />
+          <br />
+          <ActionEditor
+            network={network}
+            action={action}
+            setAction={(action) => {
+              createAction(action);
+              setOpen(false);
+            }}
+            onCancel={() => setOpen(false)}
+          />
+        </DialogContent>
       </Dialog>
     </>
   );

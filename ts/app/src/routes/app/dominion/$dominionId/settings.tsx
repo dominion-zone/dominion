@@ -113,6 +113,7 @@ function Settings() {
               <Checkbox
                 checked={hasCoinCommander}
                 onChange={handleCoinCommanderChange}
+                disabled={!wallet}
               />
             }
             label="Coin"
@@ -124,6 +125,7 @@ function Settings() {
               <Checkbox
                 checked={hasDominionAdminCommander}
                 onChange={handleDominionCommanderChange}
+                disabled={!wallet}
               />
             }
             label="Dominion admin"
@@ -135,6 +137,7 @@ function Settings() {
               <Checkbox
                 checked={hasGovernanceAdminCommander}
                 onChange={handleGovernanceCommanderChange}
+                disabled={!wallet}
               />
             }
             label="Dominion editor"

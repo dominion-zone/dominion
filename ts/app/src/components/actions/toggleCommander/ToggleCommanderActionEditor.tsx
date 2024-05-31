@@ -3,7 +3,12 @@ import { Network } from "../../../config/network";
 import useSuspenseConfig from "../../../hooks/useSuspenseConfig";
 import { Action, ToggleCommanderAction } from "../../../types/actions";
 import { Form, Formik } from "formik";
-import { Autocomplete, Button, TextField, Typography } from "@mui/material";
+import {
+  Autocomplete,
+  Button,
+  DialogActions,
+  TextField,
+} from "@mui/material";
 
 function ToggleCommanderActionEditor({
   network,
@@ -38,10 +43,9 @@ function ToggleCommanderActionEditor({
     >
       {({ values, setFieldValue }) => (
         <Form>
-          <Typography>{action.type}</Typography>
           <div>
             <Autocomplete
-              sx={{ width: 1000 }}
+              sx={{ minWidth: "65em" }}
               freeSolo={true}
               options={commanders}
               renderInput={(params) => (
@@ -51,10 +55,11 @@ function ToggleCommanderActionEditor({
               onChange={(_e, value) => setFieldValue("commander", value || "")}
             />
           </div>
-          <Button type="submit">Save</Button>
-          <Button onClick={onCancel}>
-            Cancel
-          </Button>
+          <br />
+          <DialogActions>
+            <Button type="submit">Save</Button>
+            <Button onClick={onCancel}>Cancel</Button>
+          </DialogActions>
         </Form>
       )}
     </Formik>
@@ -62,4 +67,3 @@ function ToggleCommanderActionEditor({
 }
 
 export default ToggleCommanderActionEditor;
-

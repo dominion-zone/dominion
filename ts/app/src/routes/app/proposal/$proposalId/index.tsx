@@ -18,11 +18,11 @@ export const Route = createFileRoute("/app/proposal/$proposalId/")({
     params: { proposalId },
   }) => {
     if (wallet) {
-      queryClient.ensureQueryData(
+      await queryClient.ensureQueryData(
         userMembersQO({ network, queryClient, wallet })
       );
     }
-    queryClient.ensureQueryData(
+    await queryClient.ensureQueryData(
       proposalStatusQO({ network, queryClient, proposalId })
     );
   },

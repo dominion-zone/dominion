@@ -19,6 +19,9 @@ function TokenAssetItem({
 }) {
   const navigate = useNavigate();
   const handleTransfer = useCallback(() => {
+    if (!wallet) {
+      throw new Error("Wallet is required");
+    }
     navigate({
       to: "/app/dominion/$dominionId/createProposal",
       search: {
@@ -43,7 +46,7 @@ function TokenAssetItem({
     <ListItem>
       <Typography>{coinType}</Typography>:{" "}
       <Typography>{amount.toString()}</Typography>
-      <IconButton onClick={handleTransfer}>
+      <IconButton onClick={handleTransfer} disabled={!wallet}>
         <SendIcon />
       </IconButton>
     </ListItem>

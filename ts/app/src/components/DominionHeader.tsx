@@ -72,7 +72,7 @@ function DominionHeader({ tab }: DominionHeaderProps) {
       <Typography sx={{ ml: 1, mr: 2 }}>Dominion: {governance.name}</Typography>
       <Tabs value={tab} onChange={handleChange}>
         <Tab label="Info" value="info" />
-        <Tab label="Settings" value="settings" disabled={!wallet} />
+        <Tab label="Settings" value="settings" />
         <Tab label="Participate" value="participate" disabled={!wallet} />
         <Tab label="Proposals" value="proposals" />
         <Tab

@@ -5,7 +5,7 @@ import {
   ListItem,
   Typography,
   Dialog,
-  Container,
+  DialogTitle,
 } from "@mui/material";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EditIcon from "@mui/icons-material/Edit";
@@ -37,18 +37,17 @@ function ProposalActionItem({
 
   return (
     <ListItem>
-      <Dialog open={open}>
-        <Container>
-          <ActionEditor
-            network={network}
-            action={action}
-            setAction={(action) => {
-              setAction(action);
-              setOpen(false);
-            }}
-            onCancel={() => setOpen(false)}
-          />
-        </Container>
+      <Dialog open={open} maxWidth="lg">
+        <DialogTitle>Edit {action.type} Action</DialogTitle>
+        <ActionEditor
+          network={network}
+          action={action}
+          setAction={(action) => {
+            setAction(action);
+            setOpen(false);
+          }}
+          onCancel={() => setOpen(false)}
+        />
       </Dialog>
       <ActionInfo action={action} />
       <IconButton onClick={() => setOpen(true)}>
