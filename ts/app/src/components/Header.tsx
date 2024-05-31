@@ -14,7 +14,7 @@ function AppHeader() {
               to="/app"
               color="inherit"
             >
-              Launch App
+              Access Preview
             </Button>
           </Stack>
         </Toolbar>

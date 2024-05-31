@@ -8,6 +8,8 @@ import ProposalActionsEditor from "../../../../components/ProposalActionsEditor"
 import useCreateProposal from "../../../../hooks/mutations/useCreateProposal";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { Action } from "../../../../types/actions";
+import userMembersQO from "../../../../queryOptions/user/userMembersQO";
+import allCoinBalancesQO from "../../../../queryOptions/user/allCoinBalancesQO";
 
 const action = z.union([
   z.object({
@@ -34,6 +36,16 @@ export const Route = createFileRoute(
     actions: z.array(action).optional(),
     wallet: z.string(),
   }),
+  loaderDeps: ({ search: { network, wallet } }) => ({ network, wallet }),
+  loader: ({ deps: { network, wallet }, context: { queryClient } }) =>
+    Promise.all([
+      queryClient.ensureQueryData(
+        userMembersQO({ network, queryClient, wallet })
+      ),
+      queryClient.ensureQueryData(
+        allCoinBalancesQO({ network, wallet, queryClient })
+      ),
+    ]),
 });
 
 function CreateProposal() {
@@ -53,10 +65,12 @@ function CreateProposal() {
       link: string;
       actions: Action[];
     }) => {
-      mutation.mutate({ name, link, actions }, {
-        onSuccess: () => {
+      mutation.mutate(
+        { name, link, actions },
+        {
+          onSuccess: () => {},
         }
-      });
+      );
     },
     [mutation]
   );
