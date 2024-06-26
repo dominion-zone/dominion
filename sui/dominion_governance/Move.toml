@@ -4,7 +4,7 @@ edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 version = "0.1.0"
-published-at = "0x2c256584462b95de8d2fd6aeddea116b00e5e0ff5c6547e018a043ff8d61f30a"
+published-at = "0x85c8f0395e0866f7d97ecaf61a65c702480333cae0f0199f3c9c4bd1df3d3ae8"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/devnet" }
